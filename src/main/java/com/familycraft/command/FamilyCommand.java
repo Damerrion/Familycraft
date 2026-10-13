@@ -6,9 +6,9 @@ import com.familycraft.model.Family;
 import com.familycraft.model.FamilyException;
 import com.familycraft.model.FamilyManager;
 import com.familycraft.placeholder.DisplayNames;
+import com.familycraft.placeholder.FamilyInfo;
 import com.familycraft.storage.FamilyStorage;
 import com.gufli.kingdomcraft.api.KingdomCraft;
-import com.gufli.kingdomcraft.api.domain.Kingdom;
 import com.gufli.kingdomcraft.api.domain.User;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -18,8 +18,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,18 +38,21 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     private final FamilyStorage storage;
     private final VaultEconomy economy;
     private final DisplayNames displayNames;
+    private final FamilyInfo info;
 
     /** owner -> time until which /family disband is confirmed */
     private final Map<UUID, Long> pendingDisband = new HashMap<>();
 
     public FamilyCommand(FamilyCraftPlugin plugin, KingdomCraft kc, FamilyManager manager,
-                         FamilyStorage storage, VaultEconomy economy, DisplayNames displayNames) {
+                         FamilyStorage storage, VaultEconomy economy, DisplayNames displayNames,
+                         FamilyInfo info) {
         this.plugin = plugin;
         this.kc = kc;
         this.manager = manager;
         this.storage = storage;
         this.economy = economy;
         this.displayNames = displayNames;
+        this.info = info;
     }
 
     // ------------------------------------------------------------------ dispatch
@@ -138,6 +139,8 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             manager.disband(family);
             throw new FamilyException("not-enough-money");
         }
+        User user = kc.getOnlineUser(p.getUniqueId());
+        family.setKingdomName(user == null || user.getKingdom() == null ? null : user.getKingdom().getName());
         save();
         refresh(p.getUniqueId());
         send(p, "created", "%name%", family.getName(), "%tag%", family.getTag(),
@@ -282,16 +285,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             }
         }
         final Family f = family;
-        resolveKingdom(f, kingdom -> {
-            String date = DateTimeFormatter.ofPattern(plugin.getConfig().getString("messages.date-format", "dd/MM/yyyy HH:mm:ss"))
-                    .withZone(ZoneId.systemDefault()).format(f.getCreatedAt());
-            String kingdomName = kingdom == null ? message("no-kingdom") : kc.colorify(kingdom.getDisplay());
-            sender.sendMessage(message("info-border"));
-            sender.sendMessage(message("info-name", "%name%", f.getName()));
-            sender.sendMessage(message("info-tag", "%tag%", f.getTag()));
-            sender.sendMessage(message("info-kingdom", "%kingdom%", kingdomName));
-            sender.sendMessage(message("info-created", "%date%", date));
-            sender.sendMessage(message("info-border"));
+        info.resolveKingdom(f, kingdom -> {
+            for (String key : new String[]{"info-border", "info-name", "info-tag", "info-kingdom", "info-created", "info-border"}) {
+                sender.sendMessage(info.format(plugin.getConfig().getString("messages." + key, key), f, kingdom));
+            }
         });
     }
 
@@ -313,17 +310,6 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     }
 
     // ------------------------------------------------------------------ helpers
-
-    /** The kingdom of the family owner ("familie afstamming"); resolved async for offline owners. */
-    private void resolveKingdom(Family family, java.util.function.Consumer<Kingdom> callback) {
-        User online = kc.getOnlineUser(family.getOwner());
-        if (online != null) {
-            callback.accept(online.getKingdom());
-            return;
-        }
-        kc.getUser(family.getOwner()).whenComplete((user, err) -> Bukkit.getScheduler().runTask(plugin,
-                () -> callback.accept(user == null || err != null ? null : user.getKingdom())));
-    }
 
     private Player player(CommandSender sender) throws FamilyException {
         if (!(sender instanceof Player)) {

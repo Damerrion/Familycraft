@@ -2,10 +2,10 @@ package com.familycraft.model;
 
 import java.time.Instant;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /** Bukkit independent family logic: validation, membership, invites. */
@@ -20,10 +20,11 @@ public class FamilyManager {
     private final int maxMembers;
     private final long inviteExpireMillis;
 
-    private final Map<String, Family> byTag = new HashMap<>();
-    private final Map<UUID, Family> byMember = new HashMap<>();
+    // read from the async chat thread (placeholders, hover), so concurrent maps
+    private final Map<String, Family> byTag = new ConcurrentHashMap<>();
+    private final Map<UUID, Family> byMember = new ConcurrentHashMap<>();
     /** invited player -> invite */
-    private final Map<UUID, Invite> invites = new HashMap<>();
+    private final Map<UUID, Invite> invites = new ConcurrentHashMap<>();
 
     /** Test helper. */
     public interface ThrowingRunnable {

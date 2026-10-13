@@ -37,6 +37,7 @@ public class FamilyStorage {
                 UUID owner = UUID.fromString(s.getString("owner"));
                 Family family = new Family(s.getString("name"), s.getString("tag"), owner,
                         s.getString("members." + owner, "?"), Instant.ofEpochMilli(s.getLong("created")));
+                family.setKingdomName(s.getString("kingdom"));
                 ConfigurationSection members = s.getConfigurationSection("members");
                 if (members != null) {
                     for (String uuid : members.getKeys(false)) {
@@ -58,6 +59,7 @@ public class FamilyStorage {
             yaml.set(path + ".tag", f.getTag());
             yaml.set(path + ".owner", f.getOwner().toString());
             yaml.set(path + ".created", f.getCreatedAt().toEpochMilli());
+            yaml.set(path + ".kingdom", f.getKingdomName());
             for (java.util.Map.Entry<UUID, String> e : f.getMembers().entrySet()) {
                 yaml.set(path + ".members." + e.getKey(), e.getValue());
             }

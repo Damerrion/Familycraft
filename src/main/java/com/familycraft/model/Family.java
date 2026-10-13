@@ -11,6 +11,8 @@ public class Family {
     private final String tag;
     private final Instant createdAt;
     private UUID owner;
+    /** Name of the owner's kingdom when last seen ("familie afstamming"), null if none/unknown. */
+    private volatile String kingdomName;
     /** uuid -> last known player name, insertion ordered (owner first) */
     private final Map<UUID, String> members = new LinkedHashMap<>();
 
@@ -48,6 +50,14 @@ public class Family {
 
     public boolean isMember(UUID uuid) {
         return members.containsKey(uuid);
+    }
+
+    public String getKingdomName() {
+        return kingdomName;
+    }
+
+    public void setKingdomName(String kingdomName) {
+        this.kingdomName = kingdomName;
     }
 
     public String getOwnerName() {

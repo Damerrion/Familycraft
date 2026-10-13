@@ -1,9 +1,11 @@
 package com.familycraft;
 
+import com.familycraft.chat.FamilyHover;
 import com.familycraft.command.FamilyCommand;
 import com.familycraft.economy.VaultEconomy;
 import com.familycraft.model.FamilyManager;
 import com.familycraft.placeholder.DisplayNames;
+import com.familycraft.placeholder.FamilyInfo;
 import com.familycraft.placeholder.FamilyPlaceholders;
 import com.familycraft.storage.FamilyStorage;
 import com.gufli.kingdomcraft.api.KingdomCraft;
@@ -58,7 +60,15 @@ public class FamilyCraftPlugin extends JavaPlugin {
             displayNames.register();
         }
 
-        FamilyCommand command = new FamilyCommand(this, kc, manager, storage, economy, displayNames);
+        FamilyInfo info = new FamilyInfo(this, kc, manager, storage);
+        info.register();
+
+        if (cfg.getBoolean("chat-hover.enabled", true)) {
+            new FamilyHover(this, kc, manager, placeholders, info,
+                    cfg.getStringList("chat-hover.lines"), cfg.getString("chat-hover.click-command", "")).register();
+        }
+
+        FamilyCommand command = new FamilyCommand(this, kc, manager, storage, economy, displayNames, info);
         getCommand("family").setExecutor(command);
         getCommand("family").setTabCompleter(command);
 

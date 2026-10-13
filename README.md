@@ -44,5 +44,11 @@ FamilyCraft registreert placeholders in KingdomCraft: `{family_tag}`, `{family_p
 - **Premium nametags/tablist** (`plugins/KingdomCraftPremium/config.yml`):
   `prefix_format: '{kingdom_nametag_prefix}{family_prefix}{rank_nametag_prefix}'`
 
+### Hover / klik op de prefix
+
+In de KingdomCraft chat laat `{family_prefix}` bij hover de familie-info zien (naam, afkorting, afstamming,
+datum opgericht, eigenaar, leden) en voert een klik `/family members <tag>` uit. Instellen of uitzetten via
+`chat-hover` in `config.yml`. Werkt alleen met `{family_prefix}` (niet met `{family_tag}`).
+
 Na het wijzigen van `chat.yml` / Premium config: `/k reload` (of herstart).
 Alle teksten en het prefixformaat staan in `config.yml`. Families worden opgeslagen in `plugins/FamilyCraft/families.yml`.

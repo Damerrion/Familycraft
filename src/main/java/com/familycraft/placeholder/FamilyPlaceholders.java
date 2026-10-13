@@ -32,6 +32,11 @@ public class FamilyPlaceholders implements PlaceholderReplacer {
         kc.getPlaceholderManager().removePlaceholderReplacer(this);
     }
 
+    /** The colored {family_prefix} text of a family, exactly as it ends up in the chat line. */
+    public String prefixFor(Family family) {
+        return kc.colorify(prefixFormat.replace("%tag%", family.getTag()));
+    }
+
     @Override
     public String replace(User user, String placeholder) {
         if (user == null) {
@@ -47,7 +52,7 @@ public class FamilyPlaceholders implements PlaceholderReplacer {
             case "family_name":
                 return family.getName();
             case "family_prefix":
-                return kc.colorify(prefixFormat.replace("%tag%", family.getTag()));
+                return prefixFor(family);
             default:
                 return "";
         }

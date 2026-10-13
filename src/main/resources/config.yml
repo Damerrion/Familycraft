@@ -25,6 +25,21 @@ economy:
 placeholders:
   prefix-format: '&7[&f%tag%&7] '
 
+# Hovering over {family_prefix} in the KingdomCraft chat shows these lines, clicking it runs click-command.
+# Only works for {family_prefix} (not {family_tag}). Variables: %name% %tag% %kingdom% %date% %owner% %members%
+chat-hover:
+  enabled: true
+  lines:
+    - '&5&m                              '
+    - '&6Volledige naam: &7%name%'
+    - '&6Afgekorte naam: &7%tag%'
+    - '&6Familie afstamming: &7%kingdom%'
+    - '&6Datum opgericht: &7%date%'
+    - '&6Eigenaar: &7%owner% &8(&7%members% leden&8)'
+    - '&5&m                              '
+  # empty = nothing happens on click
+  click-command: '/family members %tag%'
+
 # KingdomCraft sets the display name to '<kingdom prefix> <name><kingdom suffix>' itself, so chat plugins
 # that show the display name (EssentialsChat, ...) never see the family. FamilyCraft rebuilds it with this
 # format. Any KingdomCraft placeholder works; %player% is the player name. Disable if you do not want this.
