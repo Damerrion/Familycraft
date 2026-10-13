@@ -1,0 +1,34 @@
+# Oude standaardwaarden uit eerdere versies van family.yml. Staat een van deze waarden nog ongewijzigd in
+# plugins/FenixCore/family.yml, dan vervangt FenixCore hem door de nieuwe standaard (bv. Engelse rangnamen).
+ranks:
+  family-head:
+    name: Family-head
+  successor:
+    name: Successor
+  spare-heir:
+    name: Spare-Heir
+  consort:
+    name: Consort
+  heirs-consort:
+    name: Heir's Consort
+  children-of-the-house:
+    name: Children of the House
+gui:
+  overview-title: '&8Families'
+  overview-empty: '&7Er zijn nog geen families'
+  tree-help-lore:
+  - '&7Elke rij is een generatie, bovenaan de oudste.'
+  - '&7Partners staan naast elkaar.'
+  - '&7Koppelen: klik op een lid in /family editor'
+  - '&7of /family tree link <parent|child|partner|sibling> <a> <b>'
+messages:
+  owner-cannot-leave: '&cAls familiehoofd kun je niet vertrekken. Geef eerst iemand anders de rang Family-head, of gebruik &f/family disband&c.'
+  rank-head-change: '&cHet familiehoofd verander je door iemand anders de rang Family-head te geven.'
+  marriage-no-successor: '&cDe bruidegom of bruid is familiehoofd, maar die familie heeft geen Successor of Spare-Heir om het over te nemen.'
+  help-extra:
+  - '&6/family list &7- Overzicht van alle families'
+  - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+  - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+  - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+  - '&6/family marriage <bruidegom> <bruid> &7- Huwelijksaanzoek (hoofd)'
+  - '&6/family crest &7- Banner in je hand als familiewapen'

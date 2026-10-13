@@ -44,6 +44,9 @@ public final class FamilyModule {
     private FamilyManager manager;
     private FamilyStorage storage;
     private FamilyPlaceholders placeholders;
+    private DisplayNames displayNames;
+    private FamilyHover hover;
+    private FamilyCommand command;
 
     public FamilyModule(FenixCore core) {
         this.core = core;
@@ -72,17 +75,19 @@ public final class FamilyModule {
         if (defaults == null) {
             return;
         }
-        config.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(defaults, StandardCharsets.UTF_8)));
+        YamlConfiguration jar = YamlConfiguration.loadConfiguration(new InputStreamReader(defaults, StandardCharsets.UTF_8));
+        config.setDefaults(jar);
         if (config.getKeys(false).isEmpty()) {
             // YAML-fout: Bukkit geeft dan een lege config. Nooit opslaan, anders is family.yml weg.
             getLogger().severe(CONFIG_FILE + " kon niet geladen worden (YAML-fout?); de standaardwaarden worden gebruikt.");
             return;
         }
+        boolean changed = replaceOldDefaults(jar);
         // Nieuwe instellingen en teksten (uit een nieuwere versie) in de bestaande family.yml zetten. Nodig omdat
         // getString(pad, standaard) de defaults uit de jar overslaat; zo kan de admin ze ook meteen aanpassen.
         int before = config.getKeys(true).size();
         config.options().copyDefaults(true);
-        if (config.getKeys(true).size() != before) {
+        if (changed || config.getKeys(true).size() != before) {
             try {
                 config.save(configFile);
                 getLogger().info(CONFIG_FILE + " aangevuld met nieuwe instellingen en teksten.");
@@ -90,6 +95,29 @@ public final class FamilyModule {
                 getLogger().warning(CONFIG_FILE + " kon niet bijgewerkt worden: " + e);
             }
         }
+    }
+
+    /** Waarden die nog precies de oude standaard zijn (family-old-defaults.yml) vervangen door de nieuwe. */
+    private boolean replaceOldDefaults(YamlConfiguration jar) {
+        InputStream in = core.getResource("family-old-defaults.yml");
+        if (in == null) {
+            return false;
+        }
+        YamlConfiguration old = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+        boolean changed = false;
+        for (String path : old.getKeys(true)) {
+            if (old.isConfigurationSection(path) || !config.isSet(path)) {
+                continue;
+            }
+            if (java.util.Objects.equals(config.get(path), old.get(path)) && jar.isSet(path)) {
+                config.set(path, jar.get(path));
+                changed = true;
+            }
+        }
+        if (changed) {
+            getLogger().info(CONFIG_FILE + ": oude standaardteksten (o.a. Engelse rangnamen) vervangen door de nieuwe.");
+        }
+        return changed;
     }
 
     public void enable() {
@@ -101,34 +129,17 @@ public final class FamilyModule {
             throw new IllegalStateException("KingdomCraft API niet beschikbaar");
         }
 
-        manager = new FamilyManager(
-                cfg.getInt("settings.max-name-length", 30),
-                cfg.getInt("settings.max-tag-length", 3),
-                cfg.getInt("settings.max-members", 0),
-                cfg.getLong("settings.invite-expire-seconds", 60));
-        for (FamilyRank rank : FamilyRank.values()) {
-            if (rank != FamilyRank.HEAD && cfg.isSet("ranks." + rank.id() + ".max")) {
-                manager.setRankLimit(rank, cfg.getInt("ranks." + rank.id() + ".max"));
-            }
-        }
-        manager.setProposalExpireSeconds(cfg.getLong("marriage.proposal-expire-minutes", 30) * 60);
-        manager.setRenameAtParts(cfg.getInt("marriage.rename-at-families", 4));
+        manager = new FamilyManager(30, 3, 0, 60);
+        applySettings();
 
         storage = new FamilyStorage(new File(core.getDataFolder(), DATA_FILE), getLogger());
         storage.load(manager);
 
-        VaultEconomy economy = null;
-        if (cfg.getDouble("economy.create-cost", 0) > 0) {
-            economy = VaultEconomy.hook();
-            if (economy == null) {
-                getLogger().warning("economy.create-cost staat aan maar Vault/economie niet gevonden; familie maken wordt geweigerd.");
-            }
-        }
+        VaultEconomy economy = hookEconomy();
 
         placeholders = new FamilyPlaceholders(kc, manager, cfg.getString("placeholders.prefix-format", "&7[&f%tag%&7] "));
         placeholders.register();
 
-        DisplayNames displayNames = null;
         if (cfg.getBoolean("display-name.enabled", true)) {
             displayNames = new DisplayNames(core, kc,
                     cfg.getString("display-name.format", "{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}"));
@@ -139,11 +150,12 @@ public final class FamilyModule {
         info.register();
 
         if (cfg.getBoolean("chat-hover.enabled", true)) {
-            new FamilyHover(core, kc, manager, placeholders, info,
-                    cfg.getStringList("chat-hover.lines"), cfg.getString("chat-hover.click-command", "")).register();
+            hover = new FamilyHover(core, kc, manager, placeholders, info,
+                    cfg.getStringList("chat-hover.lines"), cfg.getString("chat-hover.click-command", ""));
+            hover.register();
         }
 
-        FamilyCommand command = new FamilyCommand(this, kc, manager, storage, economy, displayNames, info);
+        command = new FamilyCommand(this, kc, manager, storage, economy, displayNames, info);
         FamilyService service = new FamilyService(this, kc, manager, storage, displayNames, info);
         command.setService(service);
         core.getServer().getPluginManager().registerEvents(new GuiListener(), core);
@@ -168,6 +180,54 @@ public final class FamilyModule {
         }
 
         getLogger().info("Family-module aan: " + manager.getFamilies().size() + " families geladen.");
+    }
+
+    /** Instellingen uit family.yml die bij het starten gelezen worden. */
+    private void applySettings() {
+        FileConfiguration cfg = config;
+        manager.applySettings(
+                cfg.getInt("settings.max-name-length", 30),
+                cfg.getInt("settings.max-tag-length", 3),
+                cfg.getInt("settings.max-members", 0),
+                cfg.getLong("settings.invite-expire-seconds", 60));
+        for (FamilyRank rank : FamilyRank.values()) {
+            if (rank != FamilyRank.HEAD) {
+                manager.setRankLimit(rank, cfg.getInt("ranks." + rank.id() + ".max",
+                        rank == FamilyRank.SUCCESSOR || rank == FamilyRank.SPARE_HEIR ? 1 : 0));
+            }
+        }
+        manager.setProposalExpireSeconds(cfg.getLong("marriage.proposal-expire-minutes", 30) * 60);
+        manager.setRenameAtParts(cfg.getInt("marriage.rename-at-families", 4));
+    }
+
+    private VaultEconomy hookEconomy() {
+        if (config.getDouble("economy.create-cost", 0) <= 0) {
+            return null;
+        }
+        VaultEconomy economy = VaultEconomy.hook();
+        if (economy == null) {
+            getLogger().warning("economy.create-cost staat aan maar Vault/economie niet gevonden; familie maken wordt geweigerd.");
+        }
+        return economy;
+    }
+
+    /**
+     * /fenixcore reload family: family.yml opnieuw lezen en toepassen. De families zelf (families.yml) worden niet
+     * opnieuw ingelezen: die staan in het geheugen en worden bij elke wijziging opgeslagen.
+     * display-name.enabled en chat-hover.enabled aan/uit zetten vraagt een herstart.
+     */
+    public void reload() {
+        loadConfig();
+        applySettings();
+        placeholders.setPrefixFormat(config.getString("placeholders.prefix-format", "&7[&f%tag%&7] "));
+        if (displayNames != null) {
+            displayNames.setFormat(config.getString("display-name.format", "{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}"));
+            core.getServer().getOnlinePlayers().forEach(p -> displayNames.update(p.getUniqueId()));
+        }
+        if (hover != null) {
+            hover.setLines(config.getStringList("chat-hover.lines"), config.getString("chat-hover.click-command", ""));
+        }
+        command.setEconomy(hookEconomy());
     }
 
     public void disable() {

@@ -49,14 +49,25 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - GUI's (`family.gui`, Paper-inventories met `Gui`-holder + `GuiListener`): `/family list` (overzicht met banners),
   `/family editor` (crest, leden, `MemberGui`, `PickMemberGui`, `TreeGui` per generatie), `RenameGui` (popup).
   Gedeelde acties (rang, stamboom, crest, huwelijk, hernoemen) in `FamilyService`, zodat commando en GUI hetzelfde doen.
-- Rangen (`FamilyRank`): Family-head, Successor, Spare-Heir, Consort, Heir's Consort, Children of the House
-  (standaard voor nieuwe leden). `/family rank give <speler|UUID> <rang>`; Family-head geven = hoofd overdragen.
+- Rangen (`FamilyRank`), **Nederlands** (gebruiker): Familiehoofd, Opvolger, Reserve-erfgenaam, Gemaal, Gemaal van de
+  Erfgenaam, Kind van het Huis (standaard voor nieuwe leden). Ids in yml blijven Engels (family-head, successor, ...).
+  `/family rank give <speler|UUID> <rang>` (ook NL-ids als opvolger); Familiehoofd geven = hoofd overdragen.
+- `family-old-defaults.yml` (in de jar): oude standaardwaarden; staan die nog ongewijzigd in family.yml, dan worden
+  ze bij start/reload vervangen door de nieuwe (bv. Engelse rangnamen). Nieuwe keys gaan via copyDefaults erin.
+  Let op: Bukkit `getString(pad, def)` slaat de jar-defaults over.
+- `/fenixcore reload [all|family|kwa]` (`fenixcore.reload`). Family-reload leest family.yml en past instellingen toe
+  (niet families.yml; display-name/chat-hover aan/uit vraagt herstart).
+- `/family list` = families van het kingdom waar je NU in zit (afstamming = vastgelegd kingdom van de familie);
+  `/family list <kingdom>`, `/family list all`; een familietag opent die familie.
+- Stamboom-regel: ouder/kind (ook voorouder/afstammeling) kan geen broer/zus zijn en andersom (`tree-sibling-parent`).
+- TreeGui: rij per generatie met gekleurde markering in kolom 0, koppels met roze ❤-ruit ertussen, gesorteerd op de
+  plek van de ouders, naamkleur per rang (`gui.rank-colors`), scrollen omhoog/omlaag en links/rechts.
 - Stamboom (`Genealogy`): ouder/kind (max 2 ouders, geen lussen), partner (1), broer/zus; per speler opgeslagen
   (`people:` in families.yml), alleen leden van dezelfde familie koppelen.
 - Huwelijk (afgesproken met de gebruiker): hoofd familie bruidegom stelt voor, hoofd familie bruid accepteert. Het
   bruidspaar (alleen die twee) vormt een **aftakking**; A en B blijven bestaan. Naam: gedeeld achtervoegsel
   ("Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn"), anders "A-B". Tag = beginletters (DAL); mag langer
-  zijn dan max-tag-length. Bruidegom = hoofd, bruid = Consort. Was een van beiden hoofd: Successor (anders Spare-Heir)
+  zijn dan max-tag-length. Bruidegom = hoofd, bruid = Gemaal. Was een van beiden hoofd: Opvolger (anders Reserve-erfgenaam)
   neemt over, anders kan het niet. Vanaf 4 families in de naam (`marriage.rename-at-families`) of bij een bezette
   naam/tag: `needs-rename`, popup voor het hoofd (bij huwelijk en bij inloggen), `/family rename <naam> <tag>`.
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde

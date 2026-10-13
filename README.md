@@ -7,7 +7,8 @@ De FenixKingdom-addon voor KingdomCraft (Paper 1.21.4). Eén plugin met twee mod
 | **wands** | KingdomWandsAddon | `/kwa`, `/bind`, `/unbind` | `plugins/FenixCore/wands.yml` |
 | **family** | FamilyCraft | `/family` (`/familie`, `/fam`) | `plugins/FenixCore/family.yml` (+ data in `families.yml`) |
 
-Modules aan/uit in `plugins/FenixCore/config.yml`. Commando's en permissies (`kwa.*`, `family.*`) zijn hetzelfde
+Modules aan/uit in `plugins/FenixCore/config.yml` (herstart). Configs herladen zonder herstart:
+`/fenixcore reload [all|family|kwa]` (permissie `fenixcore.reload`, standaard op; `/kwa reload` werkt ook nog). Commando's en permissies (`kwa.*`, `family.*`) zijn hetzelfde
 gebleven, dus LuckPerms hoeft niet aangepast te worden.
 
 ## Overstappen van KingdomWandsAddon / FamilyCraft
@@ -105,14 +106,17 @@ Permissies: `family.use` (standaard iedereen), `family.create` (de gekochte rech
 ### Overzicht, editor, rangen en stamboom
 | Commando | Wat |
 |---|---|
-| `/family list` | GUI met alle families (familiewapen, tag, hoofd, leden, afstamming). Klik = leden en stamboom |
+| `/family list` | GUI met de families van **jouw kingdom** (familiewapen, tag, hoofd, leden, afstamming). Klik = leden en stamboom |
+| `/family list <kingdom>` / `/family list all` | Families van een ander kingdom / van alle kingdoms (`/family list <tag>` opent die familie) |
 | `/family editor [tag]` | Familiewapen (klik met een banner), info, leden met rang en relaties, stamboom. Alleen het hoofd (of `family.admin`) kan bewerken |
-| `/family rank give <speler\|UUID> <rang>` | Rangen: Family-head, Successor, Spare-Heir, Consort, Heir's Consort, Children of the House (`/family rank list`). Family-head geven = het hoofd overdragen |
+| `/family rank give <speler\|UUID> <rang>` | Rangen: Familiehoofd, Opvolger, Reserve-erfgenaam, Gemaal, Gemaal van de Erfgenaam, Kind van het Huis (`/family rank list`). Familiehoofd geven = het hoofd overdragen |
 | `/family tree link <parent\|child\|partner\|sibling> <a> <b>` / `unlink <a> <b>` | Stamboom koppelen (ook via de editor) |
 | `/family crest` | Banner in je hand wordt het familiewapen |
 
-Nieuwe leden krijgen de rang Children of the House. Hoeveel leden een rang mogen hebben staat onder `ranks` in
-`family.yml` (standaard 1 Successor en 1 Spare-Heir). De stamboom hoort bij de speler, dus relaties blijven bestaan
+Nieuwe leden krijgen de rang Kind van het Huis. Hoeveel leden een rang mogen hebben staat onder `ranks` in
+`family.yml` (standaard 1 Opvolger en 1 Reserve-erfgenaam). Een ouder/kind (of grootouder/kleinkind) kan niet ook
+broer/zus zijn. In de stamboom is elke rij een generatie (gekleurde markering links), staan koppels naast elkaar
+met een ❤ ertussen en kinderen onder hun ouders; naamkleur = rang. De stamboom hoort bij de speler, dus relaties blijven bestaan
 als iemand naar een aftakking gaat.
 
 ### Huwelijken en aftakkingen
@@ -120,8 +124,8 @@ als iemand naar een aftakking gaat.
 2. Het hoofd van de familie van de bruid: `/family marriage accept` (of `deny`; ook klikbaar in de chat).
 3. Het bruidspaar verlaat hun families en vormt een **aftakking**: `Dokker Lijn` + `Adamantie Lijn` ->
    **`Dokker-Adamantie Lijn` [DAL]** (zonder gedeeld achtervoegsel: `A-B`, tag = beginletters). De bruidegom wordt
-   Family-head, de bruid Consort. Afstamming en familiewapen komen van de familie van de bruidegom.
-4. Was de bruidegom of bruid familiehoofd, dan neemt de Successor (of Spare-Heir) dat over. Zonder opvolger kan het
+   Familiehoofd, de bruid Gemaal. Afstamming en familiewapen komen van de familie van de bruidegom.
+4. Was de bruidegom of bruid familiehoofd, dan neemt de Opvolger (of Reserve-erfgenaam) dat over. Zonder opvolger kan het
    huwelijk niet.
 5. Komen er 4 families in de naam (`A-B-C-D`), dan krijgt het hoofd een popup om een nieuwe naam en tag te kiezen
    (`/family rename <naam> <tag>`); daarmee begint een nieuwe lijn.

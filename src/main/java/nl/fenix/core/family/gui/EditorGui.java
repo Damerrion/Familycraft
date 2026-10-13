@@ -58,7 +58,7 @@ public final class EditorGui extends Gui {
                 lore.add("");
                 lore.add(text("member-click", "&eKlik om rang en stamboom te bewerken"));
             }
-            set(FIRST_MEMBER_SLOT + i, GuiItems.head(member, "&f" + service.nameOf(member), lore), e -> {
+            set(FIRST_MEMBER_SLOT + i, GuiItems.head(member, service.rankColor(family.getRank(member)) + service.nameOf(member), lore), e -> {
                 if (editable) {
                     openLater((Player) e.getWhoClicked(), new MemberGui(service, family, member));
                 }
@@ -66,7 +66,7 @@ public final class EditorGui extends Gui {
         }
 
         set(45, GuiItems.item(Material.ARROW, text("overview-button", "&eAlle families"), List.of()),
-                e -> openLater((Player) e.getWhoClicked(), new OverviewGui(service, 0)));
+                e -> openLater((Player) e.getWhoClicked(), OverviewGui.forViewer(service, (Player) e.getWhoClicked())));
         if (p > 0) {
             set(47, GuiItems.item(Material.ARROW, text("previous", "&eVorige pagina"), List.of()),
                     e -> openLater((Player) e.getWhoClicked(), new EditorGui(service, family, (Player) e.getWhoClicked(), p - 1)));

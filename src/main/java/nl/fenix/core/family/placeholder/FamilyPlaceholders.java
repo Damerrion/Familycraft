@@ -16,7 +16,7 @@ public class FamilyPlaceholders implements PlaceholderReplacer {
 
     private final KingdomCraft kc;
     private final FamilyManager manager;
-    private final String prefixFormat;
+    private volatile String prefixFormat;
 
     public FamilyPlaceholders(KingdomCraft kc, FamilyManager manager, String prefixFormat) {
         this.kc = kc;
@@ -30,6 +30,10 @@ public class FamilyPlaceholders implements PlaceholderReplacer {
 
     public void unregister() {
         kc.getPlaceholderManager().removePlaceholderReplacer(this);
+    }
+
+    public void setPrefixFormat(String prefixFormat) {
+        this.prefixFormat = prefixFormat;
     }
 
     /** The colored {family_prefix} text of a family, exactly as it ends up in the chat line. */

@@ -333,6 +333,16 @@ public final class WandsModule {
         }
     }
 
+    /** wands.yml opnieuw lezen (/kwa reload en /fenixcore reload kwa). */
+    public void reload() {
+        reloadConfig();
+        migrateConfig();
+        wand.reload();
+        registerWandPermissions();
+        resetCooldowns();
+        hookKingdoms();
+    }
+
     public void disable() {
         cooldowns.clear();
         devMode.clear();

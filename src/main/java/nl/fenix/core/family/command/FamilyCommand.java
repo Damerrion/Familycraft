@@ -43,7 +43,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     private final KingdomCraft kc;
     private final FamilyManager manager;
     private final FamilyStorage storage;
-    private final VaultEconomy economy;
+    private volatile VaultEconomy economy;
     private final DisplayNames displayNames;
     private final FamilyInfo info;
     private FamilyService service;
@@ -61,6 +61,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         this.economy = economy;
         this.displayNames = displayNames;
         this.info = info;
+    }
+
+    public void setEconomy(VaultEconomy economy) {
+        this.economy = economy;
     }
 
     public void setService(FamilyService service) {
@@ -110,7 +114,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     break;
                 case "list":
                 case "overzicht":
-                    new OverviewGui(service, 0).open(player(sender));
+                    list(player(sender), rest);
                     break;
                 case "editor":
                     editor(player(sender), rest);
@@ -350,6 +354,35 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /** /family list [kingdom|all]: families van je eigen kingdom, een ander kingdom, of alle. */
+    private void list(Player p, String[] args) throws FamilyException {
+        if (args.length == 0) {
+            String own = OverviewGui.kingdomOf(service, p);
+            if (own.isEmpty()) {
+                send(p, "list-no-kingdom");
+            }
+            new OverviewGui(service, p, own, 0).open(p);
+            return;
+        }
+        String arg = String.join(" ", args);
+        if (arg.equalsIgnoreCase("all") || arg.equalsIgnoreCase("alle")) {
+            new OverviewGui(service, p, OverviewGui.ALL, 0).open(p);
+            return;
+        }
+        for (com.gufli.kingdomcraft.api.domain.Kingdom kingdom : kc.getKingdoms()) {
+            if (kingdom.getName().equalsIgnoreCase(arg)) {
+                new OverviewGui(service, p, kingdom.getName(), 0).open(p);
+                return;
+            }
+        }
+        Family family = manager.getFamilyByTag(arg);
+        if (family != null) {
+            new EditorGui(service, family, p).open(p);
+            return;
+        }
+        send(p, "list-unknown", "%arg%", arg);
+    }
+
     /** /family editor [tag] */
     private void editor(Player p, String[] args) throws FamilyException {
         Family family = args.length > 0 ? manager.getFamilyByTag(args[0]) : manager.getFamily(p.getUniqueId());
@@ -363,14 +396,14 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     private void rank(Player p, String[] args) throws FamilyException {
         if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
             for (FamilyRank rank : FamilyRank.values()) {
-                p.sendMessage(message("rank-list-entry", "%id%", rank.id(), "%rank%", service.rankName(rank)));
+                p.sendMessage(message("rank-list-entry", "%id%", rank.dutchId(), "%rank%", service.rankName(rank)));
             }
             return;
         }
         if (args.length < 3 || !args[0].equalsIgnoreCase("give")) {
             throw new FamilyException("usage-rank");
         }
-        FamilyRank rank = FamilyRank.parse(String.join(" ", Arrays.copyOfRange(args, 2, args.length)));
+        FamilyRank rank = service.parseRank(String.join(" ", Arrays.copyOfRange(args, 2, args.length)));
         if (rank == null) {
             throw new FamilyException("rank-unknown");
         }
@@ -529,7 +562,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     }
 
     private String message(String key, String... replacements) {
-        String text = plugin.getConfig().getString("messages." + key, key);
+        String text = plugin.getConfig().getString("messages." + key);
+        if (text == null) {
+            text = key;
+        }
         for (int i = 0; i + 1 < replacements.length; i += 2) {
             text = text.replace(replacements[i], replacements[i + 1]);
         }
@@ -564,6 +600,11 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                 case "members":
                 case "editor":
                     return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[1]);
+                case "list":
+                    List<String> kingdoms = new ArrayList<>();
+                    kingdoms.add("all");
+                    kc.getKingdoms().forEach(k -> kingdoms.add(k.getName()));
+                    return filter(kingdoms, args[1]);
                 case "rank":
                     return filter(Arrays.asList("give", "list"), args[1]);
                 case "tree":
@@ -584,7 +625,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             return filter(memberNames(sender), args[2]);
         }
         if (args.length == 4 && sub.equals("rank") && args[1].equalsIgnoreCase("give")) {
-            return filter(Arrays.stream(FamilyRank.values()).map(FamilyRank::id).collect(Collectors.toList()), args[3]);
+            return filter(Arrays.stream(FamilyRank.values()).map(FamilyRank::dutchId).collect(Collectors.toList()), args[3]);
         }
         if (args.length == 3 && sub.equals("tree") && args[1].equalsIgnoreCase("link")) {
             return filter(Arrays.asList("parent", "child", "partner", "sibling"), args[2]);

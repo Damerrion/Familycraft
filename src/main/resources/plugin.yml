@@ -5,6 +5,10 @@ api-version: "1.21"
 description: FenixKingdom-addon voor KingdomCraft (wands + families)
 softdepend: [KingdomCraft, LuckPerms, KingdomWands, ProtocolLib, Vault, KingdomWandsAddon, FamilyCraft]
 commands:
+  fenixcore:
+    description: FenixCore info en configs herladen
+    usage: /fenixcore reload <all|family|kwa>
+    aliases: [fenix]
   kwa:
     description: Wands hoofdcommando (zoals /kw)
     usage: /kwa [get|bind|unbind|spells|effect|create|info|help|dev|check|reload]
@@ -15,6 +19,9 @@ commands:
 # Alles staat standaard aan voor operators. Niet-ops krijgen het via LuckPerms.
 # De permissies zijn dezelfde als in de losse plugins KingdomWandsAddon (kwa.*) en FamilyCraft (family.*).
 permissions:
+  fenixcore.reload:
+    description: /fenixcore reload (configs herladen)
+    default: op
   family.use:
     description: /family gebruiken
     default: true

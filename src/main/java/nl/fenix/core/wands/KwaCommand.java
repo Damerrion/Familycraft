@@ -477,12 +477,7 @@ public final class KwaCommand implements TabExecutor {
             plugin.sayPlain(sender, "no-permission");
             return;
         }
-        plugin.reloadConfig();
-        plugin.migrateConfig();
-        plugin.wand().reload();
-        plugin.registerWandPermissions();
-        plugin.resetCooldowns();
-        plugin.hookKingdoms();
+        plugin.reload();
         plugin.msg(sender, "<green>Config herladen. <gold>KingdomCraft: "
                 + (plugin.hasKingdomCraft() ? "<green>gekoppeld" : "<red>niet gevonden"));
     }

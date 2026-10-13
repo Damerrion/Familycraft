@@ -31,8 +31,8 @@ public class FamilyHover {
     private final FamilyManager manager;
     private final FamilyPlaceholders placeholders;
     private final FamilyInfo info;
-    private final List<String> lines;
-    private final String clickCommand;
+    private volatile List<String> lines;
+    private volatile String clickCommand;
 
     public FamilyHover(Plugin plugin, KingdomCraft kc, FamilyManager manager, FamilyPlaceholders placeholders,
                        FamilyInfo info, List<String> lines, String clickCommand) {
@@ -41,6 +41,11 @@ public class FamilyHover {
         this.manager = manager;
         this.placeholders = placeholders;
         this.info = info;
+        this.lines = lines;
+        this.clickCommand = clickCommand;
+    }
+
+    public void setLines(List<String> lines, String clickCommand) {
         this.lines = lines;
         this.clickCommand = clickCommand;
     }

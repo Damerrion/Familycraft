@@ -103,6 +103,9 @@ public class Genealogy {
         if (isAncestor(child, parent)) {
             throw new FamilyException("tree-cycle");
         }
+        if (siblingsOf(child).contains(parent)) {
+            throw new FamilyException("tree-sibling-parent");
+        }
         parents.computeIfAbsent(child, k -> new LinkedHashSet<>()).add(parent);
     }
 
@@ -126,6 +129,10 @@ public class Genealogy {
         }
         if (siblingsOf(a).contains(b)) {
             throw new FamilyException("tree-already");
+        }
+        // een (voor)ouder of (klein)kind kan niet ook broer/zus zijn
+        if (isAncestor(a, b) || isAncestor(b, a)) {
+            throw new FamilyException("tree-sibling-parent");
         }
         siblings.computeIfAbsent(a, k -> new LinkedHashSet<>()).add(b);
         siblings.computeIfAbsent(b, k -> new LinkedHashSet<>()).add(a);

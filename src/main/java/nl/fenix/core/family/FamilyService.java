@@ -88,7 +88,10 @@ public final class FamilyService {
     }
 
     public String message(String key, String... replacements) {
-        String text = config().getString("messages." + key, key);
+        String text = config().getString("messages." + key);
+        if (text == null) {
+            text = key;
+        }
         for (int i = 0; i + 1 < replacements.length; i += 2) {
             text = text.replace(replacements[i], replacements[i + 1]);
         }
@@ -97,7 +100,8 @@ public final class FamilyService {
 
     /** Ruwe (niet gekleurde) tekst uit family.yml, voor GUI-items. */
     public String raw(String path, String def) {
-        return config().getString(path, def);
+        String value = config().getString(path);
+        return value == null ? def : value;
     }
 
     public static String color(String text) {
@@ -115,7 +119,25 @@ public final class FamilyService {
     }
 
     public String rankName(FamilyRank rank) {
-        return config().getString("ranks." + rank.id() + ".name", rank.defaultName());
+        String name = config().getString("ranks." + rank.id() + ".name");
+        return name == null ? rank.defaultName() : name;
+    }
+
+    /** Kleurcode voor de naam van een lid met deze rang (gui.rank-colors). */
+    public String rankColor(FamilyRank rank) {
+        String color = config().getString("gui.rank-colors." + rank.id());
+        return color == null ? "&f" : color;
+    }
+
+    /** Rang op id, Nederlandse naam, ingestelde naam of oude Engelse naam. */
+    public FamilyRank parseRank(String raw) {
+        String key = raw.toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}]", "");
+        for (FamilyRank rank : FamilyRank.values()) {
+            if (rankName(rank).toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}]", "").equals(key)) {
+                return rank;
+            }
+        }
+        return FamilyRank.parse(raw);
     }
 
     public void broadcast(Family family, UUID except, String key, String... replacements) {

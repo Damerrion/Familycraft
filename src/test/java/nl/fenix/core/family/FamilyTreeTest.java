@@ -80,6 +80,27 @@ public class FamilyTreeTest {
     }
 
     @Test
+    public void parentAndChildCannotBeSiblings() throws Exception {
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, sonA);
+        assertKey("tree-sibling-parent", () -> manager.link(a, headA, false, Genealogy.Relation.SIBLING, sonA, headA));
+        manager.link(a, headA, false, Genealogy.Relation.SIBLING, sonA, heirA);
+        assertKey("tree-sibling-parent", () -> manager.link(a, headA, false, Genealogy.Relation.PARENT, heirA, sonA));
+        // kleinkind kan ook geen broer/zus van de grootouder zijn
+        UUID grandchild = UUID.randomUUID();
+        join(a, headA, grandchild, "Grandchild");
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, sonA, grandchild);
+        assertKey("tree-sibling-parent", () -> manager.link(a, headA, false, Genealogy.Relation.SIBLING, headA, grandchild));
+    }
+
+    @Test
+    public void dutchRankNames() {
+        assertEquals(FamilyRank.SUCCESSOR, FamilyRank.parse("opvolger"));
+        assertEquals(FamilyRank.CHILD, FamilyRank.parse("Kind van het Huis"));
+        assertEquals(FamilyRank.HEIRS_CONSORT, FamilyRank.parse("gemaal-van-de-erfgenaam"));
+        assertEquals(FamilyRank.HEAD, FamilyRank.parse("Family-head"));
+    }
+
+    @Test
     public void mergedNamesAndTags() {
         FamilyManager.MergedName m = FamilyManager.merge("Dokker Lijn", "Adamantie Lijn");
         assertEquals("Dokker-Adamantie Lijn", m.name());

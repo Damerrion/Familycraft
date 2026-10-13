@@ -20,11 +20,15 @@ public class DisplayNames {
 
     private final Plugin plugin;
     private final KingdomCraft kc;
-    private final String format;
+    private volatile String format;
 
     public DisplayNames(Plugin plugin, KingdomCraft kc, String format) {
         this.plugin = plugin;
         this.kc = kc;
+        this.format = format;
+    }
+
+    public void setFormat(String format) {
         this.format = format;
     }
 

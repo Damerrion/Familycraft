@@ -18,10 +18,10 @@ public class FamilyManager {
     private static final Pattern NAME = Pattern.compile("[\\p{L}_]+");
     private static final Pattern TAG = Pattern.compile("\\p{L}+");
 
-    private final int maxNameLength;
-    private final int maxTagLength;
-    private final int maxMembers;
-    private final long inviteExpireMillis;
+    private int maxNameLength;
+    private int maxTagLength;
+    private int maxMembers;
+    private long inviteExpireMillis;
 
     // read from the async chat thread (placeholders, hover), so concurrent maps
     private final Map<String, Family> byTag = new ConcurrentHashMap<>();
@@ -69,6 +69,14 @@ public class FamilyManager {
         this.inviteExpireMillis = inviteExpireSeconds * 1000L;
         rankLimits.put(FamilyRank.SUCCESSOR, 1);
         rankLimits.put(FamilyRank.SPARE_HEIR, 1);
+    }
+
+    /** Instellingen opnieuw zetten (/fenixcore reload). */
+    public void applySettings(int maxNameLength, int maxTagLength, int maxMembers, long inviteExpireSeconds) {
+        this.maxNameLength = maxNameLength;
+        this.maxTagLength = maxTagLength;
+        this.maxMembers = maxMembers;
+        this.inviteExpireMillis = inviteExpireSeconds * 1000L;
     }
 
     public void setRankLimit(FamilyRank rank, int max) {
