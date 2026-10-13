@@ -40,6 +40,111 @@ chat-hover:
   # empty = nothing happens on click
   click-command: '/family members %tag%'
 
+# Rangen (hiërarchie). name = weergave, max = hoeveel leden die rang mogen hebben (0 = onbeperkt).
+# Het familiehoofd is er altijd precies één. Geven: /family rank give <speler|UUID> <rang> of via /family editor.
+ranks:
+  family-head:
+    name: 'Family-head'
+  successor:
+    name: 'Successor'
+    max: 1
+  spare-heir:
+    name: 'Spare-Heir'
+    max: 1
+  consort:
+    name: 'Consort'
+    max: 0
+  heirs-consort:
+    name: "Heir's Consort"
+    max: 0
+  children-of-the-house:
+    name: 'Children of the House'
+    max: 0
+
+# Huwelijk: /family marriage <bruidegom> <bruid> door het hoofd van de familie van de bruidegom, daarna
+# /family marriage accept door het hoofd van de familie van de bruid. Het bruidspaar vormt een aftakking:
+# "Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn" [DAL]. Vanaf zoveel families in de naam
+# (A-B-C-D) moet het hoofd van de aftakking een nieuwe naam en tag kiezen.
+marriage:
+  proposal-expire-minutes: 30
+  rename-at-families: 4
+
+# Teksten van de menu's (/family list, /family editor). Variabelen in family-lore: %name% %tag% %kingdom%
+# %date% %owner% %members% %lineage% (regels met %lineage% alleen bij aftakkingen).
+gui:
+  overview-title: '&8Families'
+  editor-title: '&8Familie: %name%'
+  member-title: '&8Lid: %player%'
+  tree-title: '&8Stamboom: %name%'
+  rename-title: '&8Nieuwe familie configureren'
+  family-name: '&d%name%'
+  family-lore:
+    - '&7Tag: &f%tag%'
+    - '&7Familiehoofd: &f%owner%'
+    - '&7Leden: &f%members%'
+    - '&7Afstamming: &f%kingdom%'
+    - '&7Afkomst: &f%lineage%'
+    - '&7Opgericht: &f%date%'
+  overview-click: '&eKlik voor de leden en de stamboom'
+  overview-empty: '&7Er zijn nog geen families'
+  overview-button: '&eAlle families'
+  crest-name: '&6Familiewapen'
+  crest-hint: '&eKlik met een banner op je cursor om het familiewapen te veranderen'
+  tree-button: '&aStamboom'
+  tree-button-lore: '&7Generaties, partners en broers/zussen'
+  tree-help: '&6Stamboom'
+  tree-help-lore:
+    - '&7Elke rij is een generatie, bovenaan de oudste.'
+    - '&7Partners staan naast elkaar.'
+    - '&7Koppelen: klik op een lid in /family editor'
+    - '&7of /family tree link <parent|child|partner|sibling> <a> <b>'
+  tree-more: '&7+%count% meer'
+  member-click: '&eKlik om rang en stamboom te bewerken'
+  member-rank: '&7Rang: &6%value%'
+  member-partner: '&7Partner: &f%value%'
+  member-parents: '&7Ouders: &f%value%'
+  member-children: '&7Kinderen: &f%value%'
+  member-siblings: '&7Broers/zussen: &f%value%'
+  rank-current: '&aHuidige rang'
+  rank-lore: '&eKlik om deze rang te geven'
+  rank-head-lore: '&cShift-klik om het familiehoofd over te dragen'
+  link-parent: '&aOuder koppelen'
+  link-parent-lore: '&7Kies wie de ouder van %player% is'
+  link-child: '&aKind koppelen'
+  link-child-lore: '&7Kies een kind van %player%'
+  link-partner: '&dPartner koppelen'
+  link-partner-lore: '&7Kies de partner van %player%'
+  link-sibling: '&bBroer/zus koppelen'
+  link-sibling-lore: '&7Kies een broer of zus van %player%'
+  unlink: '&cOntkoppelen'
+  unlink-lore: '&7Haal een relatie van %player% weg'
+  pick-parent: '&8Ouder van %player%'
+  pick-child: '&8Kind van %player%'
+  pick-partner: '&8Partner van %player%'
+  pick-sibling: '&8Broer/zus van %player%'
+  pick-unlink: '&8Ontkoppelen van %player%'
+  pick-empty: '&7Geen andere leden'
+  kick: '&cUit de familie zetten'
+  kick-lore: '&7Shift-klik om %player% te kicken'
+  rename-button: '&6Nieuwe naam kiezen'
+  rename-button-lore: '&7Deze aftakking moet een nieuwe naam en tag kiezen'
+  rename-current: '&7Nu: &f%name% &7[%tag%]'
+  rename-info:
+    - ''
+    - '&7Er zitten nu te veel families in de naam.'
+    - '&7Kies een nieuwe naam en tag voor je familie;'
+    - '&7daarmee begint een nieuwe lijn.'
+  rename-choose: '&6Kies een nieuwe naam en tag'
+  rename-choose-lore:
+    - '&7Klik: /family rename <naam> <tag>'
+    - '&7wordt in je chat klaargezet.'
+  rename-later: '&7Later'
+  rename-later-lore: '&7Je krijgt dit opnieuw bij het inloggen (of via /family editor)'
+  previous: '&eVorige pagina'
+  next: '&eVolgende pagina'
+  back: '&eTerug'
+  close: '&cSluiten'
+
 # KingdomCraft sets the display name to '<kingdom prefix> <name><kingdom suffix>' itself, so chat plugins
 # that show the display name (EssentialsChat, ...) never see the family. FamilyCraft rebuilds it with this
 # format. Any KingdomCraft placeholder works; %player% is the player name. Disable if you do not want this.
@@ -54,8 +159,8 @@ messages:
   unknown-subcommand: '&cOnbekend commando. Gebruik &f/family help&c.'
   not-in-family: '&cJe zit niet in een familie.'
   already-in-family: '&cJe zit al in een familie.'
-  not-owner: '&cAlleen de familie eigenaar kan dit doen.'
-  owner-cannot-leave: '&cAls eigenaar kun je niet vertrekken. Gebruik &f/family disband&c.'
+  not-owner: '&cAlleen het familiehoofd kan dit doen.'
+  owner-cannot-leave: '&cAls familiehoofd kun je niet vertrekken. Geef eerst iemand anders de rang Family-head, of gebruik &f/family disband&c.'
   usage-create: '&cGebruik: &f/family create <familie_naam> <familieafkorting>'
   name-invalid: '&cDe familie naam mag geen cijfers bevatten, maximaal %max% tekens lang zijn en alleen letters bevatten (gebruik _ voor een spatie).'
   tag-invalid: '&cDe familie tag mag geen cijfers bevatten en maximaal %max% tekens lang zijn.'
@@ -95,8 +200,56 @@ messages:
   family-not-found: '&cEr is geen familie met tag &f%tag%&c.'
   members-header: '&6Leden van &f%name% &7[%tag%] &8(%count%)'
   members-entry: '&8- &f%player% %role%'
-  role-owner: '&6(eigenaar)'
-  role-member: ''
+  role-rank: '&8(&6%rank%&8)'
+  no-lineage: '-'
+  unknown-player: '&cDie speler is niet gevonden (gebruik een naam van een online speler, een familielid of een UUID).'
+  usage-rank: '&cGebruik: &f/family rank give <speler|UUID> <rang>&c of &f/family rank list'
+  rank-unknown: '&cOnbekende rang. Zie &f/family rank list&c.'
+  rank-list-entry: '&8- &6%rank% &7(%id%)'
+  rank-not-member: '&cDie speler zit niet in deze familie.'
+  rank-already: '&cDie speler heeft die rang al.'
+  rank-full: '&cDie rang is al vergeven. Geef de huidige eerst een andere rang.'
+  rank-head-change: '&cHet familiehoofd verander je door iemand anders de rang Family-head te geven.'
+  rank-given: '&f%player% &aheeft nu de rang &6%rank%&a.'
+  rank-received: '&aJe hebt de rang &6%rank% &agekregen in familie &f%name%&a.'
+  usage-tree: '&cGebruik: &f/family tree link <parent|child|partner|sibling> <a> <b>&c, &f/family tree unlink <a> <b>&c of &f/family tree [tag]'
+  tree-self: '&cJe kunt iemand niet aan zichzelf koppelen.'
+  tree-already: '&cDie relatie bestaat al.'
+  tree-max-parents: '&cIemand kan maximaal 2 ouders hebben.'
+  tree-cycle: '&cDat kan niet: dan wordt iemand zijn eigen voorouder.'
+  tree-has-partner: '&cEen van beiden heeft al een partner. Ontkoppel die eerst.'
+  tree-not-member: '&cJe kunt alleen leden van je eigen familie koppelen.'
+  tree-no-relation: '&cTussen die twee is geen relatie.'
+  tree-linked-parent: '&f%a% &ais nu ouder van &f%b%&a.'
+  tree-linked-partner: '&f%a% &aen &f%b% &azijn nu partners.'
+  tree-linked-sibling: '&f%a% &aen &f%b% &azijn nu broer/zus.'
+  tree-unlinked: '&7Relatie tussen &f%a% &7en &f%b% &7weggehaald.'
+  crest-hint: '&eHoud een banner vast en gebruik &f/family crest&e, of klik in &f/family editor &emet een banner op het familiewapen.'
+  crest-no-banner: '&cDat is geen banner.'
+  crest-set: '&aHet familiewapen van &f%name% &ais aangepast.'
+  usage-marriage: '&cGebruik: &f/family marriage <bruidegom> <bruid>&c, &f/family marriage accept&c of &f/family marriage deny'
+  marriage-self: '&cIemand kan niet met zichzelf trouwen.'
+  marriage-groom-no-family: '&cDe bruidegom zit niet in een familie.'
+  marriage-bride-no-family: '&cDe bruid zit niet in een familie. Nodig haar gewoon uit met &f/family invite&c.'
+  marriage-same-family: '&cBruidegom en bruid zitten in dezelfde familie.'
+  marriage-already-married: '&cDe bruidegom of de bruid is al getrouwd.'
+  marriage-no-successor: '&cDe bruidegom of bruid is familiehoofd, maar die familie heeft geen Successor of Spare-Heir om het over te nemen.'
+  marriage-already-proposed: '&cDat aanzoek staat al open.'
+  marriage-no-proposal: '&cEr staat geen huwelijksaanzoek voor jouw familie open.'
+  marriage-proposed: '&aAanzoek verstuurd: &f%groom% &7(%groomfamily%) &aen &f%bride% &7(%bridefamily%)&a. Het hoofd van &f%bridefamily% &amoet accepteren.'
+  marriage-proposal: '&f%groomfamily% &avraagt de hand van &f%bride% &avoor &f%groom%&a.'
+  marriage-button-accept: '&a&l[Accepteren]'
+  marriage-button-deny: '&c&l[Weigeren]'
+  marriage-denied: '&7Je hebt het huwelijksaanzoek geweigerd.'
+  marriage-denied-groom: '&c%bridefamily% heeft het huwelijksaanzoek geweigerd.'
+  marriage-done: '&6Getrouwd! &aJullie vormen nu de aftakking &f%name% &7[%tag%]&a.'
+  marriage-done-family: '&6Huwelijk: &aer is een nieuwe aftakking &f%name% &7[%tag%] &auit %groomfamily% en %bridefamily%.'
+  new-head: '&f%player% &ais nu het familiehoofd van &f%name%&a.'
+  rename-needed: '&eJe aftakking &f%name% &eheeft te veel families in de naam: kies een nieuwe naam en tag.'
+  rename-suggest: '&eKlik hier en vul aan: &f/family rename <naam> <tag>'
+  rename-not-needed: '&cJe familie hoeft geen nieuwe naam te kiezen.'
+  usage-rename: '&cGebruik: &f/family rename <nieuwe_naam> <tag>'
+  renamed: '&aDe familie &f%old% &aheet nu &f%name% &7[%tag%]&a.'
   info-border: '&5&m--------------------------------'
   info-name: '&6Volledige naam: &7%name%'
   info-tag: '&6Afgekorte naam: &7%tag%'
@@ -114,3 +267,10 @@ messages:
     - '&6/family disband &7- Verwijder je familie'
     - '&6/family check <tag> &7- Bekijk info over een familie'
     - '&6/family members [tag] &7- Bekijk de leden'
+  help-extra:
+    - '&6/family list &7- Overzicht van alle families'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/family marriage <bruidegom> <bruid> &7- Huwelijksaanzoek (hoofd)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'

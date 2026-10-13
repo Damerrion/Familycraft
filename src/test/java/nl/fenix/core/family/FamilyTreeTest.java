@@ -1,0 +1,157 @@
+package nl.fenix.core.family;
+
+import nl.fenix.core.family.model.Family;
+import nl.fenix.core.family.model.FamilyException;
+import nl.fenix.core.family.model.FamilyManager;
+import nl.fenix.core.family.model.FamilyRank;
+import nl.fenix.core.family.model.Genealogy;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.UUID;
+
+import static org.junit.Assert.*;
+
+/** Rangen, stamboom, huwelijken en aftakkingen. */
+public class FamilyTreeTest {
+
+    private FamilyManager manager;
+    private final UUID headA = UUID.randomUUID();
+    private final UUID sonA = UUID.randomUUID();
+    private final UUID heirA = UUID.randomUUID();
+    private final UUID headB = UUID.randomUUID();
+    private final UUID daughterB = UUID.randomUUID();
+    private Family a;
+    private Family b;
+
+    @Before
+    public void setUp() throws Exception {
+        manager = new FamilyManager(30, 3, 0, 60);
+        a = manager.create(headA, "HeadA", "Dokker_Lijn", "DL");
+        join(a, headA, sonA, "SonA");
+        join(a, headA, heirA, "HeirA");
+        b = manager.create(headB, "HeadB", "Adamantie_Lijn", "AL");
+        join(b, headB, daughterB, "DaughterB");
+        a.setKingdomName("Gast");
+    }
+
+    private void join(Family family, UUID head, UUID player, String name) throws FamilyException {
+        manager.invite(family, head, player);
+        manager.accept(player, name);
+    }
+
+    private void assertKey(String key, FamilyManager.ThrowingRunnable r) {
+        try {
+            r.run();
+            fail("expected " + key);
+        } catch (FamilyException ex) {
+            assertEquals(key, ex.getKey());
+        }
+    }
+
+    @Test
+    public void ranksDefaultsLimitsAndHeadTransfer() throws Exception {
+        assertEquals(FamilyRank.HEAD, a.getRank(headA));
+        assertEquals(FamilyRank.CHILD, a.getRank(sonA));
+        manager.setRank(a, headA, false, heirA, FamilyRank.SUCCESSOR);
+        assertKey("rank-full", () -> manager.setRank(a, headA, false, sonA, FamilyRank.SUCCESSOR));
+        assertKey("not-owner", () -> manager.setRank(a, sonA, false, sonA, FamilyRank.CONSORT));
+        assertKey("rank-head-change", () -> manager.setRank(a, headA, false, headA, FamilyRank.CONSORT));
+        manager.setRank(a, headA, false, sonA, FamilyRank.HEAD);
+        assertTrue(a.isOwner(sonA));
+        assertEquals(FamilyRank.CHILD, a.getRank(headA));
+        assertEquals(FamilyRank.parse("heir's consort"), FamilyRank.HEIRS_CONSORT);
+        assertEquals(FamilyRank.parse("Children of the House"), FamilyRank.CHILD);
+    }
+
+    @Test
+    public void treeLinksWithinFamily() throws Exception {
+        Genealogy tree = manager.getGenealogy();
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, sonA);
+        manager.link(a, headA, false, Genealogy.Relation.SIBLING, sonA, heirA);
+        assertTrue(tree.childrenOf(headA).contains(sonA));
+        assertTrue(tree.siblingsOf(heirA).contains(sonA));
+        assertKey("tree-cycle", () -> manager.link(a, headA, false, Genealogy.Relation.PARENT, sonA, headA));
+        assertKey("tree-already", () -> manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, sonA));
+        assertKey("tree-not-member", () -> manager.link(a, headA, false, Genealogy.Relation.PARTNER, sonA, daughterB));
+        manager.unlink(a, headA, false, headA, sonA);
+        assertTrue(tree.parentsOf(sonA).isEmpty());
+        assertKey("tree-no-relation", () -> manager.unlink(a, headA, false, headA, sonA));
+    }
+
+    @Test
+    public void mergedNamesAndTags() {
+        FamilyManager.MergedName m = FamilyManager.merge("Dokker Lijn", "Adamantie Lijn");
+        assertEquals("Dokker-Adamantie Lijn", m.name());
+        assertEquals("DAL", m.tag());
+        assertEquals(2, m.parts());
+        m = FamilyManager.merge("Rheanos Decendants", "Triton Wachters");
+        assertEquals("Rheanos Decendants-Triton Wachters", m.name());
+        assertEquals("RT", m.tag());
+        m = FamilyManager.merge("Dokker-Adamantie Lijn", "Corvin-Eshar Lijn");
+        assertEquals("Dokker-Adamantie-Corvin-Eshar Lijn", m.name());
+        assertEquals(4, m.parts());
+    }
+
+    @Test
+    public void marriageNeedsBothHeadsAndCreatesBranch() throws Exception {
+        assertKey("not-owner", () -> manager.propose(sonA, false, sonA, daughterB));
+        manager.propose(headA, false, sonA, daughterB);
+        assertKey("marriage-no-proposal", () -> manager.acceptMarriage(headA));
+        FamilyManager.Marriage marriage = manager.acceptMarriage(headB);
+        Family branch = marriage.getBranch();
+
+        assertEquals("Dokker-Adamantie Lijn", branch.getName());
+        assertEquals("DAL", branch.getTag());
+        assertSame(branch, manager.getFamilyByTag("dal"));
+        assertTrue(branch.isOwner(sonA));
+        assertEquals(FamilyRank.CONSORT, branch.getRank(daughterB));
+        assertEquals("Gast", branch.getKingdomName());
+        assertEquals(2, branch.getLineage().size());
+        assertFalse(branch.needsRename());
+        assertFalse(a.isMember(sonA));
+        assertFalse(b.isMember(daughterB));
+        assertEquals(daughterB, manager.getGenealogy().partnerOf(sonA));
+        assertKey("marriage-already-married", () -> manager.propose(sonA, false, sonA, headB));
+    }
+
+    @Test
+    public void headMarryingNeedsSuccessorWhoTakesOver() throws Exception {
+        assertKey("marriage-no-successor", () -> manager.propose(headA, false, headA, daughterB));
+        manager.setRank(a, headA, false, heirA, FamilyRank.SUCCESSOR);
+        manager.propose(headA, false, headA, daughterB);
+        FamilyManager.Marriage marriage = manager.acceptMarriage(headB);
+        assertEquals(heirA, marriage.getNewGroomFamilyHead());
+        assertTrue(a.isOwner(heirA));
+        assertTrue(marriage.getBranch().isOwner(headA));
+        assertSame(marriage.getBranch(), manager.getFamily(headA));
+    }
+
+    @Test
+    public void fourFamiliesInTheNameMeansRename() throws Exception {
+        manager.propose(headA, false, sonA, daughterB);
+        Family first = manager.acceptMarriage(headB).getBranch();
+        // twee nieuwe families die ook trouwen
+        UUID c = UUID.randomUUID(), c2 = UUID.randomUUID(), d = UUID.randomUUID(), d2 = UUID.randomUUID();
+        Family fc = manager.create(c, "C", "Corvin_Lijn", "CL");
+        join(fc, c, c2, "C2");
+        Family fd = manager.create(d, "D", "Eshar_Lijn", "EL");
+        join(fd, d, d2, "D2");
+        manager.propose(c, false, c2, d2);
+        Family second = manager.acceptMarriage(d).getBranch();
+        // de twee aftakkingen: kinderen trouwen
+        UUID kid1 = UUID.randomUUID(), kid2 = UUID.randomUUID();
+        join(first, sonA, kid1, "Kid1");
+        join(second, c2, kid2, "Kid2");
+        manager.propose(sonA, false, kid1, kid2);
+        Family merged = manager.acceptMarriage(c2).getBranch();
+        assertEquals("Dokker-Adamantie-Corvin-Eshar Lijn", merged.getName());
+        assertTrue(merged.needsRename());
+        assertKey("rename-not-needed", () -> manager.rename(first, sonA, false, "Nieuw", "NW"));
+        manager.rename(merged, kid1, false, "Hoge_Lijn", "HL");
+        assertEquals("Hoge Lijn", merged.getName());
+        assertSame(merged, manager.getFamilyByTag("hl"));
+        assertNull(manager.getFamilyByTag("DACEL"));
+        assertFalse(merged.needsRename());
+    }
+}
