@@ -85,6 +85,23 @@ public final class EditorGui extends Gui {
         fill();
     }
 
+    /** Klik op een banner in je eigen inventory = die banner wordt het familiewapen (je houdt hem). */
+    @Override
+    protected void handleBottom(InventoryClickEvent event) {
+        if (editable && GuiItems.isBanner(event.getCurrentItem())) {
+            changeCrest((Player) event.getWhoClicked(), event.getCurrentItem());
+        }
+    }
+
+    private void changeCrest(Player player, ItemStack banner) {
+        try {
+            service.setCrest(player, family, banner);
+            openLater(player, new EditorGui(service, family, player));
+        } catch (FamilyException ex) {
+            service.send(player, ex.getKey());
+        }
+    }
+
     private void clickCrest(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
         if (!editable) {
@@ -95,11 +112,6 @@ public final class EditorGui extends Gui {
             service.send(player, "crest-hint");
             return;
         }
-        try {
-            service.setCrest(player, family, cursor);
-            openLater(player, new EditorGui(service, family, player));
-        } catch (FamilyException ex) {
-            service.send(player, ex.getKey());
-        }
+        changeCrest(player, cursor);
     }
 }

@@ -61,6 +61,10 @@ public abstract class Gui implements InventoryHolder {
         return service.raw("gui." + key, def);
     }
 
+    /** Klik in de eigen inventory van de speler terwijl dit menu open is (standaard: niets). */
+    protected void handleBottom(InventoryClickEvent event) {
+    }
+
     void handle(InventoryClickEvent event) {
         Consumer<InventoryClickEvent> action = actions.get(event.getRawSlot());
         if (action != null) {

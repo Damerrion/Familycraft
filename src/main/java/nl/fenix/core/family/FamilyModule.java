@@ -68,10 +68,27 @@ public final class FamilyModule {
             core.saveResource(CONFIG_FILE, false);
         }
         config = YamlConfiguration.loadConfiguration(configFile);
-        // ontbrekende instellingen (bv. uit een oudere versie) komen uit de family.yml in de jar
         InputStream defaults = core.getResource(CONFIG_FILE);
-        if (defaults != null) {
-            config.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(defaults, StandardCharsets.UTF_8)));
+        if (defaults == null) {
+            return;
+        }
+        config.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(defaults, StandardCharsets.UTF_8)));
+        if (config.getKeys(false).isEmpty()) {
+            // YAML-fout: Bukkit geeft dan een lege config. Nooit opslaan, anders is family.yml weg.
+            getLogger().severe(CONFIG_FILE + " kon niet geladen worden (YAML-fout?); de standaardwaarden worden gebruikt.");
+            return;
+        }
+        // Nieuwe instellingen en teksten (uit een nieuwere versie) in de bestaande family.yml zetten. Nodig omdat
+        // getString(pad, standaard) de defaults uit de jar overslaat; zo kan de admin ze ook meteen aanpassen.
+        int before = config.getKeys(true).size();
+        config.options().copyDefaults(true);
+        if (config.getKeys(true).size() != before) {
+            try {
+                config.save(configFile);
+                getLogger().info(CONFIG_FILE + " aangevuld met nieuwe instellingen en teksten.");
+            } catch (java.io.IOException e) {
+                getLogger().warning(CONFIG_FILE + " kon niet bijgewerkt worden: " + e);
+            }
         }
     }
 

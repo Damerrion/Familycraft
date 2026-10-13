@@ -16,6 +16,8 @@ public final class GuiListener implements Listener {
         event.setCancelled(true);
         if (event.getClickedInventory() == event.getView().getTopInventory()) {
             gui.handle(event);
+        } else if (event.getClickedInventory() != null) {
+            gui.handleBottom(event);
         }
     }
 
