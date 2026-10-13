@@ -140,6 +140,9 @@ public class Genealogy {
         if (a.equals(b)) {
             throw new FamilyException("tree-self");
         }
+        if (isBloodRelated(a, b)) {
+            throw new FamilyException("marriage-related");
+        }
         if (b.equals(partners.get(a))) {
             throw new FamilyException("tree-already");
         }
@@ -200,6 +203,22 @@ public class Genealogy {
             map.remove(key);
         }
         return true;
+    }
+
+    /**
+     * Mogen deze twee niet met elkaar trouwen? Broer/zus (gekoppeld of met een gemeenschappelijke ouder) en
+     * (voor)ouder/(klein)kind.
+     */
+    public boolean isBloodRelated(UUID a, UUID b) {
+        if (siblingsOf(a).contains(b) || isAncestor(a, b) || isAncestor(b, a)) {
+            return true;
+        }
+        for (UUID parent : parentsOf(a)) {
+            if (parentsOf(b).contains(parent)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Is {@code ancestor} (over)ouder van {@code player}? */

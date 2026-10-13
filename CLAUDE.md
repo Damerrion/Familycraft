@@ -60,6 +60,8 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - `/family list` = families van het kingdom waar je NU in zit (afstamming = vastgelegd kingdom van de familie);
   `/family list <kingdom>`, `/family list all`; een familietag opent die familie.
 - Stamboom-regel: ouder/kind (ook voorouder/afstammeling) kan geen broer/zus zijn en andersom (`tree-sibling-parent`).
+- Familie trouwt niet (gebruiker): broer/zus (gekoppeld of zelfde ouder) en (voor)ouder/(klein)kind kunnen niet
+  verloven, trouwen of als partner gekoppeld worden (`Genealogy.isBloodRelated`, `marriage-related`).
 - Ontkoppelen kan ook met iemand in een andere familie (relaties horen bij de speler): "Ontkoppelen" in het lid-menu
   toont alle relaties (`Genealogy.relativesOf`), `/family tree unlink <lid> <speler>` (hoofd), en
   `/family tree unlink <speler>` = je eigen relatie verbreken (binnen dezelfde familie alleen via het hoofd).

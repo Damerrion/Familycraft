@@ -539,6 +539,9 @@ public class FamilyManager {
         if (from.equals(to)) {
             throw new FamilyException("marriage-self");
         }
+        if (genealogy.isBloodRelated(from, to)) {
+            throw new FamilyException("marriage-related");
+        }
         if (byMember.get(from) == null || byMember.get(to) == null) {
             throw new FamilyException("engage-no-family");
         }
@@ -663,6 +666,10 @@ public class FamilyManager {
         }
         if (genealogy.partnerOf(e.groom) != null || genealogy.partnerOf(e.bride) != null) {
             throw new FamilyException("marriage-already-married");
+        }
+        // de stamboom kan na de verloving nog veranderd zijn
+        if (genealogy.isBloodRelated(e.groom, e.bride)) {
+            throw new FamilyException("marriage-related");
         }
         MarriageType type = typeOf(e);
         Wedding wedding;
@@ -894,6 +901,9 @@ public class FamilyManager {
         if (groom.equals(bride)) {
             throw new FamilyException("marriage-self");
         }
+        if (genealogy.isBloodRelated(groom, bride)) {
+            throw new FamilyException("marriage-related");
+        }
         if (groomFamily == null) {
             throw new FamilyException("marriage-groom-no-family");
         }
@@ -1124,6 +1134,9 @@ public class FamilyManager {
     public Engagement forceEngagement(UUID groom, UUID bride) throws FamilyException {
         if (groom.equals(bride)) {
             throw new FamilyException("marriage-self");
+        }
+        if (genealogy.isBloodRelated(groom, bride)) {
+            throw new FamilyException("marriage-related");
         }
         if (byMember.get(groom) == null || byMember.get(bride) == null) {
             throw new FamilyException("engage-no-family");

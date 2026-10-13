@@ -134,6 +134,31 @@ public class FamilyTreeTest {
     }
 
     @Test
+    public void siblingsAndParentsCannotMarry() throws Exception {
+        manager.link(a, headA, false, Genealogy.Relation.SIBLING, sonA, heirA);
+        assertKey("marriage-related", () -> manager.requestEngagement(sonA, heirA));
+        assertKey("marriage-related", () -> manager.forceEngagement(heirA, sonA));
+        assertKey("marriage-related", () -> manager.link(a, headA, false, Genealogy.Relation.PARTNER, sonA, heirA));
+        // zelfde ouder, niet als broer/zus gekoppeld: ook niet
+        UUID kid1 = UUID.randomUUID(), kid2 = UUID.randomUUID();
+        join(a, headA, kid1, "Kid1");
+        join(a, headA, kid2, "Kid2");
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, kid1);
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, kid2);
+        assertKey("marriage-related", () -> manager.requestEngagement(kid1, kid2));
+        // ouder en kind
+        assertKey("marriage-related", () -> manager.requestEngagement(headA, kid1));
+        // verloofd en daarna als broer/zus gekoppeld: de trouwerij gaat niet door
+        UUID x = UUID.randomUUID(), y = UUID.randomUUID();
+        join(a, headA, x, "X");
+        join(a, headA, y, "Y");
+        manager.requestEngagement(x, y);
+        FamilyManager.Engagement e = manager.acceptEngagement(y);
+        manager.link(a, headA, false, Genealogy.Relation.SIBLING, x, y);
+        assertKey("marriage-related", () -> manager.startWedding(headA, false, e));
+    }
+
+    @Test
     public void dutchRankNames() {
         assertEquals(FamilyRank.SUCCESSOR, FamilyRank.parse("opvolger"));
         assertEquals(FamilyRank.CHILD, FamilyRank.parse("Kind van het Huis"));

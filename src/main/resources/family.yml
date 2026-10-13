@@ -343,6 +343,7 @@ messages:
   wedding-outcome-join-person: '&7De partner is overgegaan naar &f%name%&7; beide lijnen gaan verder.'
   wedding-outcome-new-line: '&7Ze beginnen samen een nieuwe lijn; kies een naam.'
   wedding-outcome-branch: '&7Ze vormen de aftakking &f%name% &7[%tag%].'
+  marriage-related: '&cFamilie kan niet met elkaar trouwen (broer/zus, ouder/kind of grootouder/kleinkind).'
   marriage-self: '&cIemand kan niet met zichzelf trouwen.'
   marriage-groom-no-family: '&cDe bruidegom zit niet in een familie.'
   marriage-bride-no-family: '&cDe bruid zit niet in een familie. Nodig haar gewoon uit met &f/family invite&c.'

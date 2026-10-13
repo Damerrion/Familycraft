@@ -134,6 +134,9 @@ Wat er gebeurt:
 | Zelfde familie | Ze worden partners, verder verandert er niets |
 | Anders: A kiest | **Lijn A gaat op in lijn B** of andersom **lijn B in lijn A** · **alleen A gaat over naar lijn B** of andersom **alleen de partner naar lijn A** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (alleen het bruidspaar, nieuwe naam kiezen; A en B gaan verder) · **aftakking** (`A-B`, alleen het paar). Een hele lijn meenemen kan alleen als het hoofd of de Opvolger van die lijn trouwt |
 
+Familie kan niet met elkaar trouwen of verloven: broer/zus (gekoppeld of met een gemeenschappelijke ouder) en
+(voor)ouder/(klein)kind. Dat geldt ook voor een partner-koppeling in de stamboom.
+
 De aangetrouwde partner wordt Gemaal (bij een hoofd), Gemaal van de Erfgenaam (bij een Opvolger/Reserve-erfgenaam)
 of Kind van het Huis. Gaat een hoofd weg, dan neemt de Opvolger (anders Reserve-erfgenaam) het over.
 Komen er 4 families in de naam (`A-B-C-D`) of kies je een nieuwe lijn, dan krijgt het hoofd een popup om een nieuwe
