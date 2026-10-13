@@ -48,7 +48,7 @@ public class FamilyCraftPlugin extends JavaPlugin {
             }
         }
 
-        placeholders = new FamilyPlaceholders(kc, manager, cfg.getString("placeholders.prefix-format", "&7[&f%tag%&7]"));
+        placeholders = new FamilyPlaceholders(kc, manager, cfg.getString("placeholders.prefix-format", "&7[&f%tag%&7] "));
         placeholders.register();
 
         DisplayNames displayNames = null;

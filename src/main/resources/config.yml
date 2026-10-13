@@ -19,10 +19,11 @@ economy:
 
 # Placeholders for the KingdomCraft chat.yml / scoreboards (use them like {family_prefix}):
 #   {family_tag}     -> RD
-#   {family_prefix}  -> the `prefix-format` below with the tag filled in, empty without family
+#   {family_prefix}  -> the `prefix-format` below with the tag filled in, completely empty without family
+#                       (brackets and the trailing space included, so use '{kingdom_prefix} {family_prefix}{username}')
 #   {family_name}    -> Rheanos Decendants
 placeholders:
-  prefix-format: '&7[&f%tag%&7]'
+  prefix-format: '&7[&f%tag%&7] '
 
 # KingdomCraft sets the display name to '<kingdom prefix> <name><kingdom suffix>' itself, so chat plugins
 # that show the display name (EssentialsChat, ...) never see the family. FamilyCraft rebuilds it with this

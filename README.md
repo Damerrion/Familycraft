@@ -37,8 +37,10 @@ FamilyCraft registreert placeholders in KingdomCraft: `{family_tag}`, `{family_p
   `<kingdom prefix> <naam>`. FamilyCraft overschrijft die met
   `{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}`, dus de familietag staat direct na het koninkrijk.
   Chatplugins die de display name gebruiken (EssentialsChat e.d.) tonen dan `[Gast] [RD] doomerix`.
-- **KingdomCraft chat** (`plugins/KingdomCraft/chat.yml`): zet `{family_prefix}` in de format, bv.
-  `format: '&7[&aP&7]&f{kingdom_prefix}{family_prefix}{rank_prefix} &f{prefix}{username}&7: &f{message}'`
+- **KingdomCraft chat** (`plugins/KingdomCraft/chat.yml`): zet `{family_prefix}` direct voor de naam, zonder
+  eigen haakjes of spatie erachter: `{family_prefix}` is `[TW] ` (haakjes + spatie) en helemaal leeg zonder familie.
+  `format: '&7[&aP&7]&f{kingdom_prefix}{rank_prefix} {family_prefix}&f{prefix}{username}&7: &f{message}'`
+  Gebruik dus niet `[{family_tag}]`: dan blijft `[]` staan voor spelers zonder familie.
 - **Premium nametags/tablist** (`plugins/KingdomCraftPremium/config.yml`):
   `prefix_format: '{kingdom_nametag_prefix}{family_prefix}{rank_nametag_prefix}'`
 
