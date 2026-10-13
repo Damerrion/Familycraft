@@ -1,0 +1,22 @@
+name: FamilyCraft
+main: com.familycraft.FamilyCraftPlugin
+version: ${project.version}
+description: Family system (families with a name and tag prefix) for KingdomCraft
+api-version: 1.13
+depend: [KingdomCraft]
+softdepend: [Vault]
+commands:
+  family:
+    description: Manage your family
+    usage: /family <accept|cancel|create|disband|check|invite|kick|leave|members|info>
+    aliases: [familie, fam]
+permissions:
+  family.use:
+    description: Use /family
+    default: true
+  family.create:
+    description: Create a family (give this to players who bought one)
+    default: op
+  family.admin:
+    description: Disband / kick in any family and bypass the creation cost
+    default: op
