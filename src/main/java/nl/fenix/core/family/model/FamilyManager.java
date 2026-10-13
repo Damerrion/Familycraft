@@ -28,8 +28,6 @@ public class FamilyManager {
     private final Map<UUID, Family> byMember = new ConcurrentHashMap<>();
     /** invited player -> invite */
     private final Map<UUID, Invite> invites = new ConcurrentHashMap<>();
-    /** bruid -> huwelijksaanzoek */
-    private final Map<UUID, Proposal> proposals = new ConcurrentHashMap<>();
     private final Genealogy genealogy = new Genealogy();
     /** max aantal leden per rang (0 = onbeperkt) */
     private final Map<FamilyRank, Integer> rankLimits = new EnumMap<>(FamilyRank.class);
@@ -262,7 +260,6 @@ public class FamilyManager {
             byMember.remove(member);
         }
         cancelInvitesOf(family);
-        proposals.values().removeIf(p -> p.groomFamily == family || p.brideFamily == family);
     }
 
     private boolean isRegistered(Family family) {
@@ -374,29 +371,42 @@ public class FamilyManager {
         byTag.put(rawTag.toLowerCase(Locale.ROOT), family);
     }
 
-    // ---- huwelijken ----
+    // ---- verloving en huwelijk ----
 
-    public static class Proposal {
-        private final Family groomFamily;
-        private final Family brideFamily;
-        private final UUID groom;
-        private final UUID bride;
-        private final long expiresAt;
+    /** Wat er met de lijnen gebeurt (bij een gewoon huwelijk kiest A, de aangewezen partner). */
+    public enum MarriageOption {
+        /** lijn A (van de kiezer) gaat op in lijn B (alleen hoofd/Opvolger van A) */
+        ABSORB_LINE,
+        /** alleen A gaat over naar lijn B, beide lijnen gaan verder */
+        JOIN_PERSON,
+        /** lijn A en lijn B gaan samen verder als nieuwe lijn C (nieuwe naam; alleen hoofd/Opvolger van A) */
+        NEW_LINE,
+        /** het bruidspaar vormt een aftakking "A-B"; A en B gaan verder */
+        BRANCH
+    }
 
-        Proposal(Family groomFamily, Family brideFamily, UUID groom, UUID bride, long expiresAt) {
-            this.groomFamily = groomFamily;
-            this.brideFamily = brideFamily;
+    /** Soort huwelijk, bepaald door de rangen van het bruidspaar. */
+    public enum MarriageType {
+        /** zelfde familie: alleen partners koppelen */
+        SAME_FAMILY,
+        /** hoofd + hoofd: de families fuseren automatisch tot "A-B" */
+        HEADS,
+        /** hoofd + Opvolger: de Opvolger gaat over naar de familie van het hoofd */
+        HEAD_SUCCESSOR,
+        /** de rest: A kiest een {@link MarriageOption} */
+        CHOICE
+    }
+
+    /** Een verloofd paar (/enlope). Rollen, wie kiest en de keuze stellen ze in het trouwmenu in. */
+    public static class Engagement {
+        private UUID groom;
+        private UUID bride;
+        private boolean groomChooses = true;
+        private MarriageOption option = MarriageOption.BRANCH;
+
+        public Engagement(UUID groom, UUID bride) {
             this.groom = groom;
             this.bride = bride;
-            this.expiresAt = expiresAt;
-        }
-
-        public Family getGroomFamily() {
-            return groomFamily;
-        }
-
-        public Family getBrideFamily() {
-            return brideFamily;
         }
 
         public UUID getGroom() {
@@ -406,7 +416,423 @@ public class FamilyManager {
         public UUID getBride() {
             return bride;
         }
+
+        /** De partner die de keuze maakt (A). */
+        public UUID getChooser() {
+            return groomChooses ? groom : bride;
+        }
+
+        public boolean isGroomChooses() {
+            return groomChooses;
+        }
+
+        public void setGroomChooses(boolean groomChooses) {
+            this.groomChooses = groomChooses;
+        }
+
+        public MarriageOption getOption() {
+            return option;
+        }
+
+        public void setOption(MarriageOption option) {
+            this.option = option;
+        }
+
+        public boolean involves(UUID player) {
+            return groom.equals(player) || bride.equals(player);
+        }
+
+        public UUID partnerOf(UUID player) {
+            return groom.equals(player) ? bride : groom;
+        }
+
+        public void swapRoles() {
+            UUID g = groom;
+            groom = bride;
+            bride = g;
+            groomChooses = !groomChooses; // dezelfde persoon blijft kiezen
+        }
     }
+
+    /** Resultaat van een trouwerij. */
+    public static class Wedding {
+        private final MarriageType type;
+        private final MarriageOption option;
+        private final Family family;
+        private final List<Family> removed;
+        private final Map<Family, UUID> newHeads;
+
+        Wedding(MarriageType type, MarriageOption option, Family family, List<Family> removed, Map<Family, UUID> newHeads) {
+            this.type = type;
+            this.option = option;
+            this.family = family;
+            this.removed = removed;
+            this.newHeads = newHeads;
+        }
+
+        public MarriageType getType() {
+            return type;
+        }
+
+        /** null als er niets te kiezen viel */
+        public MarriageOption getOption() {
+            return option;
+        }
+
+        /** de familie waar het bruidspaar nu in zit */
+        public Family getFamily() {
+            return family;
+        }
+
+        /** families die zijn opgegaan in een andere (bestaan niet meer) */
+        public List<Family> getRemoved() {
+            return removed;
+        }
+
+        /** families die een nieuw hoofd kregen omdat het oude vertrok */
+        public Map<Family, UUID> getNewHeads() {
+            return newHeads;
+        }
+    }
+
+    /** speler -> verloving (beide partners wijzen naar hetzelfde object) */
+    private final Map<UUID, Engagement> engagements = new ConcurrentHashMap<>();
+    /** aanzoek: ontvanger -> aanvrager */
+    private final Map<UUID, UUID> engagementRequests = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> engagementRequestExpiry = new ConcurrentHashMap<>();
+
+    public Engagement getEngagement(UUID player) {
+        return engagements.get(player);
+    }
+
+    public Collection<Engagement> getEngagements() {
+        return new java.util.LinkedHashSet<>(engagements.values());
+    }
+
+    /** Laden uit families.yml. */
+    public void loadEngagement(Engagement engagement) {
+        engagements.put(engagement.groom, engagement);
+        engagements.put(engagement.bride, engagement);
+    }
+
+    /** /enlope &lt;speler&gt;: vraag iemand ten huwelijk (verloving). */
+    public void requestEngagement(UUID from, UUID to) throws FamilyException {
+        if (from.equals(to)) {
+            throw new FamilyException("marriage-self");
+        }
+        if (byMember.get(from) == null || byMember.get(to) == null) {
+            throw new FamilyException("engage-no-family");
+        }
+        if (genealogy.partnerOf(from) != null || genealogy.partnerOf(to) != null) {
+            throw new FamilyException("marriage-already-married");
+        }
+        if (engagements.containsKey(from) || engagements.containsKey(to)) {
+            throw new FamilyException("engage-already-engaged");
+        }
+        engagementRequests.put(to, from);
+        engagementRequestExpiry.put(to, System.currentTimeMillis() + proposalExpireMillis);
+    }
+
+    /** Wie heeft deze speler gevraagd (niet verlopen), of null. */
+    public UUID getEngagementRequest(UUID to) {
+        Long until = engagementRequestExpiry.get(to);
+        if (until == null || until < System.currentTimeMillis()) {
+            engagementRequests.remove(to);
+            engagementRequestExpiry.remove(to);
+            return null;
+        }
+        return engagementRequests.get(to);
+    }
+
+    /** Ja zeggen: de aanvrager wordt (voorlopig) bruidegom; dat kan in het trouwmenu gewisseld worden. */
+    public Engagement acceptEngagement(UUID to) throws FamilyException {
+        UUID from = getEngagementRequest(to);
+        if (from == null) {
+            throw new FamilyException("engage-no-request");
+        }
+        engagementRequests.remove(to);
+        engagementRequestExpiry.remove(to);
+        if (engagements.containsKey(from) || engagements.containsKey(to)) {
+            throw new FamilyException("engage-already-engaged");
+        }
+        Engagement engagement = new Engagement(from, to);
+        loadEngagement(engagement);
+        return engagement;
+    }
+
+    public UUID denyEngagement(UUID to) throws FamilyException {
+        UUID from = getEngagementRequest(to);
+        if (from == null) {
+            throw new FamilyException("engage-no-request");
+        }
+        engagementRequests.remove(to);
+        engagementRequestExpiry.remove(to);
+        return from;
+    }
+
+    public Engagement cancelEngagement(UUID player) throws FamilyException {
+        Engagement engagement = engagements.get(player);
+        if (engagement == null) {
+            throw new FamilyException("engage-not-engaged");
+        }
+        engagements.remove(engagement.groom);
+        engagements.remove(engagement.bride);
+        return engagement;
+    }
+
+    public MarriageType typeOf(Engagement e) {
+        Family gf = byMember.get(e.groom);
+        Family bf = byMember.get(e.bride);
+        if (gf != null && gf == bf) {
+            return MarriageType.SAME_FAMILY;
+        }
+        boolean groomHead = gf != null && gf.isOwner(e.groom);
+        boolean brideHead = bf != null && bf.isOwner(e.bride);
+        if (groomHead && brideHead) {
+            return MarriageType.HEADS;
+        }
+        if ((groomHead && bf != null && bf.getRank(e.bride) == FamilyRank.SUCCESSOR)
+                || (brideHead && gf != null && gf.getRank(e.groom) == FamilyRank.SUCCESSOR)) {
+            return MarriageType.HEAD_SUCCESSOR;
+        }
+        return MarriageType.CHOICE;
+    }
+
+    /** Mag de kiezer deze optie kiezen? Hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A. */
+    public boolean isAllowed(Engagement e, MarriageOption option) {
+        if (option == MarriageOption.ABSORB_LINE || option == MarriageOption.NEW_LINE) {
+            Family own = byMember.get(e.getChooser());
+            FamilyRank rank = own == null ? null : own.getRank(e.getChooser());
+            return rank == FamilyRank.HEAD || rank == FamilyRank.SUCCESSOR;
+        }
+        return true;
+    }
+
+    /** Alleen de kiezer (A) kiest de optie. */
+    public void chooseOption(UUID actor, boolean bypass, MarriageOption option) throws FamilyException {
+        Engagement e = engagements.get(actor);
+        if (e == null || (!bypass && !e.getChooser().equals(actor))) {
+            throw new FamilyException("wedding-not-chooser");
+        }
+        if (!isAllowed(e, option)) {
+            throw new FamilyException("wedding-option-not-allowed");
+        }
+        e.setOption(option);
+    }
+
+    /**
+     * Het hoofd van de familie van de bruid start de trouwerij. Wat er gebeurt hangt af van {@link #typeOf}:
+     * hoofd + hoofd fuseert, hoofd + Opvolger laat de Opvolger overgaan, anders de keuze van A.
+     */
+    public Wedding startWedding(UUID actor, boolean bypass, Engagement e) throws FamilyException {
+        Family gf = byMember.get(e.groom);
+        Family bf = byMember.get(e.bride);
+        if (gf == null || bf == null) {
+            throw new FamilyException("engage-no-family");
+        }
+        if (!bypass && !bf.isOwner(actor)) {
+            throw new FamilyException("wedding-not-bride-head");
+        }
+        if (genealogy.partnerOf(e.groom) != null || genealogy.partnerOf(e.bride) != null) {
+            throw new FamilyException("marriage-already-married");
+        }
+        MarriageType type = typeOf(e);
+        Wedding wedding;
+        switch (type) {
+            case SAME_FAMILY:
+                wedding = new Wedding(type, null, gf, List.of(), Map.of());
+                break;
+            case HEADS:
+                wedding = new Wedding(type, null, fuse(gf, bf, e.bride), List.of(bf), Map.of());
+                break;
+            case HEAD_SUCCESSOR: {
+                UUID heir = gf.isOwner(e.groom) ? e.bride : e.groom;
+                Family headFamily = gf.isOwner(e.groom) ? gf : bf;
+                Family heirFamily = headFamily == gf ? bf : gf;
+                movePerson(heir, heirFamily, headFamily, FamilyRank.CONSORT);
+                wedding = new Wedding(type, null, headFamily, List.of(), Map.of());
+                break;
+            }
+            default:
+                wedding = choice(e);
+        }
+        genealogy.setName(e.groom, nameOf(e.groom));
+        genealogy.setName(e.bride, nameOf(e.bride));
+        if (genealogy.partnerOf(e.groom) == null) { // de aftakking (marry) koppelt ze zelf al
+            genealogy.linkPartner(e.groom, e.bride);
+        }
+        engagements.remove(e.groom);
+        engagements.remove(e.bride);
+        return wedding;
+    }
+
+    private String nameOf(UUID player) {
+        Family f = byMember.get(player);
+        return f == null ? null : f.getMembers().get(player);
+    }
+
+    private Wedding choice(Engagement e) throws FamilyException {
+        UUID a = e.getChooser();
+        UUID b = e.partnerOf(a);
+        Family lineA = byMember.get(a);
+        Family lineB = byMember.get(b);
+        MarriageOption option = e.getOption();
+        if (!isAllowed(e, option)) {
+            throw new FamilyException("wedding-option-not-allowed");
+        }
+        switch (option) {
+            case ABSORB_LINE: {
+                FamilyRank spouseRank = spouseRank(lineB.getRank(b));
+                absorb(lineA, lineB, a, spouseRank);
+                return new Wedding(MarriageType.CHOICE, option, lineB, List.of(lineA), Map.of());
+            }
+            case JOIN_PERSON: {
+                UUID newHead = lineA.isOwner(a) ? findHeir(lineA, a) : null;
+                if (lineA.isOwner(a) && newHead == null) {
+                    throw new FamilyException("marriage-no-successor");
+                }
+                movePerson(a, lineA, lineB, spouseRank(lineB.getRank(b)));
+                return new Wedding(MarriageType.CHOICE, option, lineB, List.of(),
+                        newHead == null ? Map.of() : Map.of(lineA, newHead));
+            }
+            case NEW_LINE: {
+                Family groomLine = byMember.get(e.groom);
+                Family brideLine = byMember.get(e.bride);
+                Family c = newLine(groomLine, brideLine, e.groom, e.bride);
+                return new Wedding(MarriageType.CHOICE, option, c, List.of(groomLine, brideLine), Map.of());
+            }
+            default: {
+                Marriage m = marry(e.groom, e.bride);
+                Map<Family, UUID> heads = new java.util.HashMap<>();
+                if (m.newGroomFamilyHead != null) {
+                    heads.put(m.groomFamily, m.newGroomFamilyHead);
+                }
+                if (m.newBrideFamilyHead != null) {
+                    heads.put(m.brideFamily, m.newBrideFamilyHead);
+                }
+                return new Wedding(MarriageType.CHOICE, option, m.branch, List.of(), heads);
+            }
+        }
+    }
+
+    /** Rang van de aangetrouwde partner: Gemaal bij een hoofd, Gemaal van de Erfgenaam bij een erfgenaam. */
+    private static FamilyRank spouseRank(FamilyRank partnerRank) {
+        if (partnerRank == FamilyRank.HEAD) {
+            return FamilyRank.CONSORT;
+        }
+        if (partnerRank == FamilyRank.SUCCESSOR || partnerRank == FamilyRank.SPARE_HEIR) {
+            return FamilyRank.HEIRS_CONSORT;
+        }
+        return FamilyRank.CHILD;
+    }
+
+    /** Eén persoon gaat van familie {@code from} naar {@code to}. Was het de Opvolger: Reserve-erfgenaam schuift door. */
+    private void movePerson(UUID player, Family from, Family to, FamilyRank rank) {
+        String name = from.getMembers().get(player);
+        FamilyRank old = from.getRank(player);
+        if (from.isOwner(player)) {
+            UUID heir = findHeir(from, player);
+            from.putRank(heir, null);
+            from.setOwner(heir);
+        } else if (old == FamilyRank.SUCCESSOR) {
+            for (UUID spare : from.membersWithRank(FamilyRank.SPARE_HEIR)) {
+                from.putRank(spare, FamilyRank.SUCCESSOR);
+                break;
+            }
+        }
+        from.removeMember(player);
+        genealogy.addOrigin(player, from.getName());
+        to.addMember(player, name, rank);
+        byMember.put(player, to);
+        invites.remove(player);
+    }
+
+    /**
+     * Hoofd + hoofd: alle leden van de familie van de bruid gaan naar die van de bruidegom, die "A-B" gaat heten.
+     * Bruid = Gemaal, Opvolger/Reserve-erfgenaam van de bruid worden Kind van het Huis, de rest houdt zijn rang.
+     */
+    private Family fuse(Family groomFamily, Family brideFamily, UUID bride) {
+        MergedName merged = merge(groomFamily.getName(), brideFamily.getName());
+        String oldGroomName = groomFamily.getName();
+        for (UUID member : new ArrayList<>(groomFamily.getMembers().keySet())) {
+            genealogy.addOrigin(member, oldGroomName);
+        }
+        for (UUID member : new ArrayList<>(brideFamily.getMembers().keySet())) {
+            FamilyRank rank = brideFamily.getRank(member);
+            if (member.equals(bride)) {
+                rank = FamilyRank.CONSORT;
+            } else if (rank == FamilyRank.HEAD || rank == FamilyRank.SUCCESSOR || rank == FamilyRank.SPARE_HEIR) {
+                rank = FamilyRank.CHILD;
+            }
+            genealogy.addOrigin(member, brideFamily.getName());
+            groomFamily.addMember(member, brideFamily.getMembers().get(member), rank);
+            byMember.put(member, groomFamily);
+        }
+        removeFamily(brideFamily);
+        groomFamily.getLineage().add(oldGroomName);
+        groomFamily.getLineage().add(brideFamily.getName());
+        renameMerged(groomFamily, merged);
+        return groomFamily;
+    }
+
+    /** Lijn A gaat op in lijn B: iedereen van A wordt lid van B (kiezer = partner-rang, de rest Kind van het Huis). */
+    private void absorb(Family lineA, Family lineB, UUID chooser, FamilyRank chooserRank) {
+        for (UUID member : new ArrayList<>(lineA.getMembers().keySet())) {
+            genealogy.addOrigin(member, lineA.getName());
+            lineB.addMember(member, lineA.getMembers().get(member), member.equals(chooser) ? chooserRank : FamilyRank.CHILD);
+            byMember.put(member, lineB);
+        }
+        removeFamily(lineA);
+        lineB.getLineage().add(lineA.getName());
+    }
+
+    /**
+     * Lijn A en lijn B gaan samen verder als nieuwe lijn C. Bruidegom = hoofd, bruid = Gemaal, de rest Kind van het
+     * Huis. De nieuwe lijn krijgt eerst de samengestelde naam en moet een eigen naam kiezen.
+     */
+    private Family newLine(Family groomLine, Family brideLine, UUID groom, UUID bride) {
+        MergedName merged = merge(groomLine.getName(), brideLine.getName());
+        Family c = new Family(merged.name(), merged.tag(), groom, groomLine.getMembers().get(groom), Instant.now());
+        for (Family line : List.of(groomLine, brideLine)) {
+            for (UUID member : new ArrayList<>(line.getMembers().keySet())) {
+                genealogy.addOrigin(member, line.getName());
+                if (!member.equals(groom)) {
+                    c.addMember(member, line.getMembers().get(member), member.equals(bride) ? FamilyRank.CONSORT : FamilyRank.CHILD);
+                }
+            }
+            c.getLineage().add(line.getName());
+            removeFamily(line);
+        }
+        c.setKingdomName(groomLine.getKingdomName());
+        c.setCrest(groomLine.getCrest());
+        String tag = getFamilyByTag(merged.tag()) != null ? uniqueTag(merged.tag()) : merged.tag();
+        c.setNameAndTag(merged.name(), tag);
+        c.setNeedsRename(true);
+        register(c);
+        return c;
+    }
+
+    /** Familie weghalen zonder de leden los te koppelen (die zijn al verhuisd). */
+    private void removeFamily(Family family) {
+        byTag.remove(family.getTag().toLowerCase(Locale.ROOT));
+        cancelInvitesOf(family);
+    }
+
+    /** Samengestelde naam + tag zetten; bij A-B-C-D of een bezette naam/tag moet het hoofd een nieuwe naam kiezen. */
+    private void renameMerged(Family family, MergedName merged) {
+        byTag.remove(family.getTag().toLowerCase(Locale.ROOT));
+        boolean rename = merged.parts() >= renameAtParts || isNameTaken(merged.name());
+        String tag = merged.tag();
+        if (getFamilyByTag(tag) != null) {
+            rename = true;
+            tag = uniqueTag(tag);
+        }
+        family.setNameAndTag(merged.name(), tag);
+        family.setNeedsRename(family.needsRename() || rename);
+        byTag.put(tag.toLowerCase(Locale.ROOT), family);
+    }
+
+    // ---- aftakking (optie BRANCH en /family marriage force) ----
 
     public static class Marriage {
         private final Family branch;
@@ -435,7 +861,6 @@ public class FamilyManager {
             return brideFamily;
         }
 
-        /** nieuw hoofd van de familie van de bruidegom als die het hoofd was, anders null */
         public UUID getNewGroomFamilyHead() {
             return newGroomFamilyHead;
         }
@@ -443,22 +868,6 @@ public class FamilyManager {
         public UUID getNewBrideFamilyHead() {
             return newBrideFamilyHead;
         }
-    }
-
-    /** Het hoofd van de familie van de bruidegom vraagt het hoofd van de familie van de bruid. */
-    public Proposal propose(UUID actor, boolean bypass, UUID groom, UUID bride) throws FamilyException {
-        Family groomFamily = byMember.get(groom);
-        Family brideFamily = byMember.get(bride);
-        checkMarriage(groomFamily, brideFamily, groom, bride);
-        requireOwner(groomFamily, actor, bypass);
-        Proposal existing = getProposal(bride);
-        if (existing != null && existing.groom.equals(groom)) {
-            throw new FamilyException("marriage-already-proposed");
-        }
-        Proposal proposal = new Proposal(groomFamily, brideFamily, groom, bride,
-                System.currentTimeMillis() + proposalExpireMillis);
-        proposals.put(bride, proposal);
-        return proposal;
     }
 
     private void checkMarriage(Family groomFamily, Family brideFamily, UUID groom, UUID bride) throws FamilyException {
@@ -485,51 +894,9 @@ public class FamilyManager {
         }
     }
 
-    /** Openstaand (niet verlopen) aanzoek voor deze bruid, of null. */
-    public Proposal getProposal(UUID bride) {
-        Proposal p = proposals.get(bride);
-        if (p != null && (p.expiresAt < System.currentTimeMillis() || !isRegistered(p.groomFamily)
-                || !isRegistered(p.brideFamily))) {
-            proposals.remove(bride);
-            return null;
-        }
-        return p;
-    }
-
-    /** Aanzoek waar deze speler (als hoofd van de familie van de bruid) op moet antwoorden, of null. */
-    public Proposal getProposalFor(UUID brideFamilyHead) {
-        for (UUID bride : new ArrayList<>(proposals.keySet())) {
-            Proposal p = getProposal(bride);
-            if (p != null && p.brideFamily.isOwner(brideFamilyHead)) {
-                return p;
-            }
-        }
-        return null;
-    }
-
-    public Proposal deny(UUID brideFamilyHead) throws FamilyException {
-        Proposal p = getProposalFor(brideFamilyHead);
-        if (p == null) {
-            throw new FamilyException("marriage-no-proposal");
-        }
-        proposals.remove(p.bride);
-        return p;
-    }
-
-    /** Het hoofd van de familie van de bruid accepteert: er ontstaat een aftakking met het bruidspaar. */
-    public Marriage acceptMarriage(UUID brideFamilyHead) throws FamilyException {
-        Proposal p = getProposalFor(brideFamilyHead);
-        if (p == null) {
-            throw new FamilyException("marriage-no-proposal");
-        }
-        Marriage marriage = marry(p.groom, p.bride);
-        proposals.remove(p.bride);
-        return marriage;
-    }
-
     /**
-     * Bruidegom en bruid verlaten hun familie en vormen samen een aftakking: naam "A-B", tag uit de beginletters,
-     * bruidegom wordt hoofd, bruid Consort. Was een van beiden hoofd, dan neemt de Successor (of Spare-Heir) het over.
+     * Aftakking: bruidegom en bruid verlaten hun familie en vormen samen "A-B" (tag uit de beginletters),
+     * bruidegom = hoofd, bruid = Gemaal. Was een van beiden hoofd, dan neemt de Opvolger (of Reserve-erfgenaam) het over.
      */
     public Marriage marry(UUID groom, UUID bride) throws FamilyException {
         Family groomFamily = byMember.get(groom);
@@ -562,9 +929,13 @@ public class FamilyManager {
 
         genealogy.setName(groom, groomName);
         genealogy.setName(bride, brideName);
+        genealogy.addOrigin(groom, groomFamily.getName());
+        genealogy.addOrigin(bride, brideFamily.getName());
         genealogy.linkPartner(groom, bride);
         invites.remove(groom);
         invites.remove(bride);
+        engagements.remove(groom);
+        engagements.remove(bride);
         return new Marriage(branch, groomFamily, brideFamily, newGroomHead, newBrideHead);
     }
 

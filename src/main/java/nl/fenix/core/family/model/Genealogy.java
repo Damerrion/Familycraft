@@ -41,6 +41,8 @@ public class Genealogy {
     private final Map<UUID, Set<UUID>> siblings = new HashMap<>();
     /** laatst bekende spelersnamen */
     private final Map<UUID, String> names = new HashMap<>();
+    /** afkomst: de lijnen (familienamen) waar iemand vandaan komt, oudste eerst */
+    private final Map<UUID, java.util.List<String>> origins = new HashMap<>();
 
     // ---- lezen ----
 
@@ -70,6 +72,19 @@ public class Genealogy {
         return names.getOrDefault(player, player.toString().substring(0, 8));
     }
 
+    /** Lijnen waar deze speler officieel vandaan stamt, oudste eerst (leeg = nooit van lijn gewisseld). */
+    public java.util.List<String> originsOf(UUID player) {
+        return origins.getOrDefault(player, java.util.List.of());
+    }
+
+    /** Onthoud dat de speler uit deze lijn komt (bij overgaan, opgaan of fuseren). */
+    public void addOrigin(UUID player, String familyName) {
+        java.util.List<String> list = origins.computeIfAbsent(player, k -> new java.util.ArrayList<>());
+        if (list.isEmpty() || !list.get(list.size() - 1).equalsIgnoreCase(familyName)) {
+            list.add(familyName);
+        }
+    }
+
     public void setName(UUID player, String name) {
         if (name != null) {
             names.put(player, name);
@@ -83,6 +98,7 @@ public class Genealogy {
         parents.values().forEach(all::addAll);
         all.addAll(partners.keySet());
         all.addAll(siblings.keySet());
+        all.addAll(origins.keySet());
         return all;
     }
 

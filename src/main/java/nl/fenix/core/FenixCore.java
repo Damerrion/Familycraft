@@ -167,6 +167,9 @@ public final class FenixCore extends JavaPlugin {
 
     /** Commando van een module die uit staat: duidelijke melding in plaats van de usage-regel. */
     private void disabledCommand(String name, String module) {
+        if (name.equals("family")) {
+            disabledCommand("enlope", module);
+        }
         PluginCommand command = getCommand(name);
         if (command != null) {
             command.setExecutor((sender, cmd, label, args) -> {

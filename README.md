@@ -119,18 +119,30 @@ broer/zus zijn. In de stamboom is elke rij een generatie (gekleurde markering li
 met een ❤ ertussen en kinderen onder hun ouders; naamkleur = rang. De stamboom hoort bij de speler, dus relaties blijven bestaan
 als iemand naar een aftakking gaat.
 
-### Huwelijken en aftakkingen
-1. Het hoofd van de familie van de bruidegom: `/family marriage <bruidegom> <bruid>`.
-2. Het hoofd van de familie van de bruid: `/family marriage accept` (of `deny`; ook klikbaar in de chat).
-3. Het bruidspaar verlaat hun families en vormt een **aftakking**: `Dokker Lijn` + `Adamantie Lijn` ->
-   **`Dokker-Adamantie Lijn` [DAL]** (zonder gedeeld achtervoegsel: `A-B`, tag = beginletters). De bruidegom wordt
-   Familiehoofd, de bruid Gemaal. Afstamming en familiewapen komen van de familie van de bruidegom.
-4. Was de bruidegom of bruid familiehoofd, dan neemt de Opvolger (of Reserve-erfgenaam) dat over. Zonder opvolger kan het
-   huwelijk niet.
-5. Komen er 4 families in de naam (`A-B-C-D`), dan krijgt het hoofd een popup om een nieuwe naam en tag te kiezen
-   (`/family rename <naam> <tag>`); daarmee begint een nieuwe lijn.
+### Verloving en huwelijk
+1. **Verloven:** `/enlope <speler>`; de ander klikt **[Ja]** (of `/enlope accept|deny`). Verbreken: `/enlope cancel`.
+2. **Trouwmenu** (`/family marriage`, of `/enlope` zonder speler): het paar wisselt wie **bruidegom** en wie **bruid**
+   is, en wie de **keuze** (A) heeft. A kiest daar ook hoe de lijnen verder gaan.
+3. Het **hoofd van de familie van de bruid** opent het menu (klikbare melding of `/family marriage <bruid>`) en klikt
+   **Start de trouwerij**.
 
-Admins: `/family marriage force <bruidegom> <bruid>` (zonder akkoord, bv. tijdens een event).
+Wat er gebeurt:
+| Bruidspaar | Uitkomst |
+|---|---|
+| Hoofd + hoofd | De families **fuseren**: `Dokker Lijn` + `Adamantie Lijn` -> **`Dokker-Adamantie Lijn` [DAL]**. Bruidegom blijft hoofd, bruid wordt Gemaal; Opvolger/Reserve-erfgenaam van de bruid worden Kind van het Huis |
+| Hoofd + Opvolger | De **Opvolger gaat over** naar de familie van het hoofd (als Gemaal); de Reserve-erfgenaam wordt de nieuwe Opvolger |
+| Zelfde familie | Ze worden partners, verder verandert er niets |
+| Anders: A kiest | **Lijn A gaat op in lijn B** · **alleen A gaat over naar lijn B** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (nieuwe naam kiezen) · **aftakking** (`A-B`, alleen het paar). Hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A |
+
+De aangetrouwde partner wordt Gemaal (bij een hoofd), Gemaal van de Erfgenaam (bij een Opvolger/Reserve-erfgenaam)
+of Kind van het Huis. Gaat een hoofd weg, dan neemt de Opvolger (anders Reserve-erfgenaam) het over.
+Komen er 4 families in de naam (`A-B-C-D`) of kies je een nieuwe lijn, dan krijgt het hoofd een popup om een nieuwe
+naam en tag te kiezen (`/family rename <naam> <tag>`).
+
+**Afkomst:** bij elke overgang wordt per speler bewaard uit welke lijn(en) hij of zij officieel stamt. Dat staat bij
+elk lid in de editor en de stamboom (bv. `Afkomst: Dokker Lijn → Adamantie Lijn`), en bij een familie onder Afkomst.
+
+Admins: `/family marriage force <bruidegom> <bruid>` (direct een aftakking, zonder verloving/akkoord).
 
 De **familie afstamming** (kingdom van het hoofd) wordt bij de oprichting vastgelegd en blijft staan als het hoofd
 later van kingdom wisselt.

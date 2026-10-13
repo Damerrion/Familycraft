@@ -38,6 +38,10 @@ final class Lore {
         lines.add(line(service, "member-parents", names(service, tree.parentsOf(member))));
         lines.add(line(service, "member-children", names(service, tree.childrenOf(member))));
         lines.add(line(service, "member-siblings", names(service, tree.siblingsOf(member))));
+        if (!tree.originsOf(member).isEmpty()) {
+            // afkomst: altijd terug te volgen uit welke lijn(en) iemand officieel stamt
+            lines.add(line(service, "member-origins", String.join(" → ", tree.originsOf(member)) + " → " + family.getName()));
+        }
         return lines;
     }
 

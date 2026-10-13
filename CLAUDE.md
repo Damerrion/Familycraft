@@ -64,12 +64,17 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
   plek van de ouders, naamkleur per rang (`gui.rank-colors`), scrollen omhoog/omlaag en links/rechts.
 - Stamboom (`Genealogy`): ouder/kind (max 2 ouders, geen lussen), partner (1), broer/zus; per speler opgeslagen
   (`people:` in families.yml), alleen leden van dezelfde familie koppelen.
-- Huwelijk (afgesproken met de gebruiker): hoofd familie bruidegom stelt voor, hoofd familie bruid accepteert. Het
-  bruidspaar (alleen die twee) vormt een **aftakking**; A en B blijven bestaan. Naam: gedeeld achtervoegsel
-  ("Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn"), anders "A-B". Tag = beginletters (DAL); mag langer
-  zijn dan max-tag-length. Bruidegom = hoofd, bruid = Gemaal. Was een van beiden hoofd: Opvolger (anders Reserve-erfgenaam)
-  neemt over, anders kan het niet. Vanaf 4 families in de naam (`marriage.rename-at-families`) of bij een bezette
-  naam/tag: `needs-rename`, popup voor het hoofd (bij huwelijk en bij inloggen), `/family rename <naam> <tag>`.
+- Huwelijk (gebruiker, 2026-10-13): `/enlope <speler>` = verloving (ander klikt [Ja]); trouwmenu (`WeddingGui`,
+  `/family marriage [speler]`): paar wisselt bruidegom/bruid en wie kiest (A); A kiest de optie; het **hoofd van de
+  familie van de bruid** start. Uitkomst (`FamilyManager.typeOf`): hoofd+hoofd = automatisch fuseren tot "A-B"
+  (bruid Gemaal, Opvolger/Reserve van B -> Kind); hoofd+Opvolger = Opvolger gaat over (Gemaal), Reserve schuift door;
+  zelfde familie = alleen partners; anders kiest A uit ABSORB_LINE / JOIN_PERSON / NEW_LINE (needs-rename) / BRANCH
+  ("A-B" aftakking, alleen het paar). ABSORB_LINE en NEW_LINE alleen als A hoofd of Opvolger van lijn A is.
+  Afkomst per speler (`Genealogy.originsOf`, `origins:` in people) wordt bij elke overgang aangevuld en getoond
+  ("Afkomst: A → B"). Verlovingen worden bewaard (`engagements:` in families.yml). Naam samenvoegen: gedeeld
+  achtervoegsel ("Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn", tag DAL), anders "A-B"; vanaf 4 families
+  in de naam (`marriage.rename-at-families`) of bezette naam/tag: `needs-rename` + popup, `/family rename`.
+- `family-old-defaults.yml`: secties v1, v2, ... met oude standaardwaarden per versie (nieuwe versie onderaan erbij).
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").
 

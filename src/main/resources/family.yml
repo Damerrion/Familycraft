@@ -63,10 +63,14 @@ ranks:
     name: 'Kind van het Huis'
     max: 0
 
-# Huwelijk: /family marriage <bruidegom> <bruid> door het hoofd van de familie van de bruidegom, daarna
-# /family marriage accept door het hoofd van de familie van de bruid. Het bruidspaar vormt een aftakking:
-# "Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn" [DAL]. Vanaf zoveel families in de naam
-# (A-B-C-D) moet het hoofd van de aftakking een nieuwe naam en tag kiezen.
+# Huwelijk: /enlope <speler> (verloving, de ander klikt [Ja]). In het trouwmenu (/family marriage) stelt het paar in
+# wie bruidegom/bruid is en wie (A) kiest; het hoofd van de familie van de bruid start de trouwerij.
+#  - hoofd + hoofd: de families fuseren tot "Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn" [DAL]
+#  - hoofd + Opvolger: de Opvolger gaat over naar de familie van het hoofd (Reserve-erfgenaam schuift door)
+#  - anders kiest A: lijn A gaat op in lijn B / alleen A gaat over / samen nieuwe lijn C / aftakking "A-B"
+#    (hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A)
+# Vanaf zoveel families in de naam (A-B-C-D) moet het hoofd een nieuwe naam en tag kiezen.
+# proposal-expire-minutes = hoe lang een /enlope-aanzoek openstaat.
 marriage:
   proposal-expire-minutes: 30
   rename-at-families: 4
@@ -132,6 +136,7 @@ gui:
   member-parents: '&7Ouders: &f%value%'
   member-children: '&7Kinderen: &f%value%'
   member-siblings: '&7Broers/zussen: &f%value%'
+  member-origins: '&7Afkomst: &f%value%'
   rank-current: '&aHuidige rang'
   rank-lore: '&eKlik om deze rang te geven'
   rank-head-lore: '&cShift-klik om het familiehoofd over te dragen'
@@ -167,6 +172,49 @@ gui:
     - '&7wordt in je chat klaargezet.'
   rename-later: '&7Later'
   rename-later-lore: '&7Je krijgt dit opnieuw bij het inloggen (of via /family editor)'
+  wedding-title: '&8Trouwmenu'
+  wedding-groom: '&bBruidegom'
+  wedding-bride: '&dBruid'
+  wedding-family: '&7Familie: &f%name%'
+  wedding-is-chooser: '&eKiest hoe de lijnen verder gaan'
+  wedding-swap: '&d❤ Wissel bruidegom en bruid'
+  wedding-swap-lore: '&7Alleen het bruidspaar'
+  wedding-chooser: '&eKeuze bij: &f%player%'
+  wedding-chooser-lore: '&7Klik om te wisselen wie kiest (alleen het bruidspaar)'
+  wedding-option-absorb-line: '&6Lijn %a% gaat op in %b%'
+  wedding-option-absorb-line-lore:
+    - '&7Iedereen van %a% wordt lid van %b%.'
+    - '&7%a% bestaat daarna niet meer; de afkomst blijft zichtbaar.'
+  wedding-option-join-person: '&6%player% gaat over naar %b%'
+  wedding-option-join-person-lore:
+    - '&7Alleen %player% gaat naar %b%.'
+    - '&7Beide lijnen gaan verder.'
+  wedding-option-new-line: '&6Samen een nieuwe lijn'
+  wedding-option-new-line-lore:
+    - '&7%a% en %b% gaan samen verder in een nieuwe lijn.'
+    - '&7Het nieuwe hoofd kiest een nieuwe naam en tag.'
+  wedding-option-branch: '&6Aftakking'
+  wedding-option-branch-lore:
+    - '&7Het bruidspaar vormt een eigen lijn "%groomfamily%-%bridefamily%".'
+    - '&7%groomfamily% en %bridefamily% gaan verder.'
+  wedding-option-selected: '&aGekozen'
+  wedding-option-click: '&eKlik om te kiezen (alleen %player%)'
+  wedding-option-locked: '&cAlleen als %player% hoofd of Opvolger is'
+  wedding-auto-heads: '&6Twee hoofden: de families fuseren'
+  wedding-auto-heads-lore:
+    - '&7%groomfamily% en %bridefamily% worden samen één lijn.'
+    - '&7De bruidegom blijft hoofd, de bruid wordt Gemaal.'
+  wedding-auto-head-successor: '&6Hoofd + Opvolger'
+  wedding-auto-head-successor-lore:
+    - '&7De Opvolger gaat over naar de familie van het hoofd.'
+    - '&7De Reserve-erfgenaam wordt de nieuwe Opvolger.'
+  wedding-auto-same-family: '&6Zelfde familie'
+  wedding-auto-same-family-lore:
+    - '&7Ze blijven in %groomfamily% en worden partners.'
+  wedding-start: '&6&lStart de trouwerij'
+  wedding-start-lore: '&7Alleen het hoofd van de familie van de bruid (%player%)'
+  wedding-cancel: '&cVerloving verbreken'
+  wedding-cancel-lore: '&7Shift-klik (alleen het bruidspaar)'
   previous: '&eVorige pagina'
   next: '&eVolgende pagina'
   back: '&eTerug'
@@ -255,23 +303,40 @@ messages:
   crest-hint: '&eKlik in &f/family editor &eop een banner in je inventory, of houd een banner vast en gebruik &f/family crest&e.'
   crest-no-banner: '&cDat is geen banner.'
   crest-set: '&aHet familiewapen van &f%name% &ais aangepast.'
-  usage-marriage: '&cGebruik: &f/family marriage <bruidegom> <bruid>&c, &f/family marriage accept&c of &f/family marriage deny'
+  usage-marriage: '&cJe bent niet verloofd. Vraag iemand ten huwelijk met &f/enlope <speler>&c; daarna opent &f/family marriage &chet trouwmenu.'
+  usage-enlope: '&cGebruik: &f/enlope <speler>&c (verloven), &f/enlope accept&c, &f/enlope deny&c of &f/enlope cancel'
+  engage-no-family: '&cJullie moeten allebei in een familie zitten om te verloven.'
+  engage-already-engaged: '&cEen van jullie is al verloofd.'
+  engage-no-request: '&cNiemand heeft je ten huwelijk gevraagd.'
+  engage-not-engaged: '&cJe bent niet verloofd.'
+  engage-sent: '&aJe hebt &f%player% &aten huwelijk gevraagd.'
+  engage-request: '&f%player% &dvraagt je ten huwelijk!'
+  engage-button-accept: '&a&l[Ja]'
+  engage-button-deny: '&c&l[Nee]'
+  engage-accepted: '&d❤ &f%groom% &den &f%bride% &dzijn verloofd! Stel in het trouwmenu in wie bruidegom/bruid is en wie kiest.'
+  engage-denied: '&7Je hebt het aanzoek afgewezen.'
+  engage-denied-other: '&c%player% heeft je aanzoek afgewezen.'
+  engage-cancelled: '&c%player% heeft de verloving verbroken.'
+  wedding-button-open: '&6&l[Trouwmenu]'
+  wedding-head-notice: '&f%groom% &aen &f%bride% &azijn verloofd. Als hoofd van de familie van de bruid start jij de trouwerij.'
+  wedding-not-couple: '&cAlleen het bruidspaar kan dit veranderen.'
+  wedding-not-chooser: '&cAlleen degene die de keuze heeft kan kiezen.'
+  wedding-option-not-allowed: '&cDie keuze kan alleen het hoofd of de Opvolger van zijn/haar lijn maken.'
+  wedding-not-bride-head: '&cAlleen het hoofd van de familie van de bruid kan de trouwerij starten.'
+  wedding-done: '&6❤ Getrouwd: &f%groom% &6en &f%bride%&6! %outcome%'
+  wedding-outcome-same-family: '&7Ze blijven in &f%name%&7.'
+  wedding-outcome-heads: '&7De lijnen &f%lines% &7zijn gefuseerd tot &f%name% &7[%tag%].'
+  wedding-outcome-head-successor: '&7De erfgenaam is overgegaan naar &f%name%&7.'
+  wedding-outcome-absorb-line: '&7Een hele lijn is opgegaan in &f%name%&7.'
+  wedding-outcome-join-person: '&7De partner is overgegaan naar &f%name%&7; beide lijnen gaan verder.'
+  wedding-outcome-new-line: '&7&f%lines% &7gaan samen verder als een nieuwe lijn; kies een naam.'
+  wedding-outcome-branch: '&7Ze vormen de aftakking &f%name% &7[%tag%].'
   marriage-self: '&cIemand kan niet met zichzelf trouwen.'
   marriage-groom-no-family: '&cDe bruidegom zit niet in een familie.'
   marriage-bride-no-family: '&cDe bruid zit niet in een familie. Nodig haar gewoon uit met &f/family invite&c.'
   marriage-same-family: '&cBruidegom en bruid zitten in dezelfde familie.'
   marriage-already-married: '&cDe bruidegom of de bruid is al getrouwd.'
   marriage-no-successor: '&cDe bruidegom of bruid is familiehoofd, maar die familie heeft geen Opvolger of Reserve-erfgenaam om het over te nemen.'
-  marriage-already-proposed: '&cDat aanzoek staat al open.'
-  marriage-no-proposal: '&cEr staat geen huwelijksaanzoek voor jouw familie open.'
-  marriage-proposed: '&aAanzoek verstuurd: &f%groom% &7(%groomfamily%) &aen &f%bride% &7(%bridefamily%)&a. Het hoofd van &f%bridefamily% &amoet accepteren.'
-  marriage-proposal: '&f%groomfamily% &avraagt de hand van &f%bride% &avoor &f%groom%&a.'
-  marriage-button-accept: '&a&l[Accepteren]'
-  marriage-button-deny: '&c&l[Weigeren]'
-  marriage-denied: '&7Je hebt het huwelijksaanzoek geweigerd.'
-  marriage-denied-groom: '&c%bridefamily% heeft het huwelijksaanzoek geweigerd.'
-  marriage-done: '&6Getrouwd! &aJullie vormen nu de aftakking &f%name% &7[%tag%]&a.'
-  marriage-done-family: '&6Huwelijk: &aer is een nieuwe aftakking &f%name% &7[%tag%] &auit %groomfamily% en %bridefamily%.'
   new-head: '&f%player% &ais nu het familiehoofd van &f%name%&a.'
   rename-needed: '&eJe aftakking &f%name% &eheeft te veel families in de naam: kies een nieuwe naam en tag.'
   rename-suggest: '&eKlik hier en vul aan: &f/family rename <naam> <tag>'
@@ -302,5 +367,6 @@ messages:
     - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
     - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
     - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
-    - '&6/family marriage <bruidegom> <bruid> &7- Huwelijksaanzoek (hoofd)'
+    - '&6/enlope <speler> &7- Iemand ten huwelijk vragen (verloving)'
+    - '&6/family marriage &7- Trouwmenu (rollen, keuze, starten)'
     - '&6/family crest &7- Banner in je hand als familiewapen'

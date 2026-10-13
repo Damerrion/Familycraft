@@ -21,6 +21,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -260,50 +261,156 @@ public final class FamilyService {
         broadcast(family, null, "renamed", "%old%", oldName, "%name%", family.getName(), "%tag%", family.getTag());
     }
 
-    public void propose(Player actor, UUID groom, UUID bride) throws FamilyException {
-        boolean bypass = isAdmin(actor) && (manager.getFamily(groom) == null || !manager.getFamily(groom).isOwner(actor.getUniqueId()));
-        FamilyManager.Proposal p = manager.propose(actor.getUniqueId(), bypass, groom, bride);
-        String[] repl = {"%groom%", nameOf(groom), "%bride%", nameOf(bride), "%groomfamily%", p.getGroomFamily().getName(),
-                "%bridefamily%", p.getBrideFamily().getName()};
-        send(actor, "marriage-proposed", repl);
-        Player head = Bukkit.getPlayer(p.getBrideFamily().getOwner());
-        if (head != null) {
-            sendWithButtons(head, "marriage-proposal", repl,
-                    "marriage-button-accept", "/family marriage accept", "marriage-button-deny", "/family marriage deny");
+    // ------------------------------------------------------------------ verloving en trouwerij
+
+    /** /enlope &lt;speler&gt;: iemand ten huwelijk vragen. */
+    public void engage(Player from, UUID to) throws FamilyException {
+        manager.requestEngagement(from.getUniqueId(), to);
+        send(from, "engage-sent", "%player%", nameOf(to));
+        Player target = Bukkit.getPlayer(to);
+        if (target != null) {
+            sendWithButtons(target, "engage-request", new String[]{"%player%", from.getName()},
+                    "engage-button-accept", "/enlope accept", "engage-button-deny", "/enlope deny");
         }
     }
 
-    public void denyMarriage(Player actor) throws FamilyException {
-        FamilyManager.Proposal p = manager.deny(actor.getUniqueId());
-        send(actor, "marriage-denied");
-        Player head = Bukkit.getPlayer(p.getGroomFamily().getOwner());
-        if (head != null) {
-            send(head, "marriage-denied-groom", "%bridefamily%", p.getBrideFamily().getName());
+    public void acceptEngagement(Player player) throws FamilyException {
+        FamilyManager.Engagement e = manager.acceptEngagement(player.getUniqueId());
+        save();
+        String[] repl = {"%groom%", nameOf(e.getGroom()), "%bride%", nameOf(e.getBride())};
+        for (UUID uuid : new UUID[]{e.getGroom(), e.getBride()}) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                sendWithButtons(p, "engage-accepted", repl, "wedding-button-open", "/family marriage");
+            }
+        }
+        notifyBrideHead(e);
+        openWedding(player, e);
+    }
+
+    public void denyEngagement(Player player) throws FamilyException {
+        UUID from = manager.denyEngagement(player.getUniqueId());
+        send(player, "engage-denied");
+        Player requester = Bukkit.getPlayer(from);
+        if (requester != null) {
+            send(requester, "engage-denied-other", "%player%", player.getName());
         }
     }
 
-    public void acceptMarriage(Player actor) throws FamilyException {
-        completeMarriage(manager.acceptMarriage(actor.getUniqueId()));
+    public void cancelEngagement(Player player) throws FamilyException {
+        FamilyManager.Engagement e = manager.cancelEngagement(player.getUniqueId());
+        save();
+        for (UUID uuid : new UUID[]{e.getGroom(), e.getBride()}) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                send(p, "engage-cancelled", "%player%", player.getName());
+            }
+        }
     }
 
-    /** Admin: direct trouwen zonder akkoord (bv. tijdens een event). */
+    /** Het hoofd van de familie van de bruid moet de trouwerij starten: laat het weten (klikbaar). */
+    public void notifyBrideHead(FamilyManager.Engagement e) {
+        Family bf = manager.getFamily(e.getBride());
+        if (bf == null) {
+            return;
+        }
+        Player head = Bukkit.getPlayer(bf.getOwner());
+        if (head != null && !e.involves(head.getUniqueId())) {
+            sendWithButtons(head, "wedding-head-notice",
+                    new String[]{"%groom%", nameOf(e.getGroom()), "%bride%", nameOf(e.getBride())},
+                    "wedding-button-open", "/family marriage " + nameOf(e.getBride()));
+        }
+    }
+
+    /** Mag deze speler het trouwmenu van deze verloving zien? (paar, beide familiehoofden, admin) */
+    public boolean canView(Player player, FamilyManager.Engagement e) {
+        UUID uuid = player.getUniqueId();
+        if (e.involves(uuid) || isAdmin(player)) {
+            return true;
+        }
+        Family gf = manager.getFamily(e.getGroom());
+        Family bf = manager.getFamily(e.getBride());
+        return (gf != null && gf.isOwner(uuid)) || (bf != null && bf.isOwner(uuid));
+    }
+
+    public void openWedding(Player player, FamilyManager.Engagement e) {
+        Bukkit.getScheduler().runTask(module.plugin(), () -> new nl.fenix.core.family.gui.WeddingGui(this, e).open(player));
+    }
+
+    public void swapRoles(Player actor, FamilyManager.Engagement e) throws FamilyException {
+        if (!e.involves(actor.getUniqueId()) && !isAdmin(actor)) {
+            throw new FamilyException("wedding-not-couple");
+        }
+        e.swapRoles();
+        save();
+    }
+
+    public void toggleChooser(Player actor, FamilyManager.Engagement e) throws FamilyException {
+        if (!e.involves(actor.getUniqueId()) && !isAdmin(actor)) {
+            throw new FamilyException("wedding-not-couple");
+        }
+        e.setGroomChooses(!e.isGroomChooses());
+        if (!manager.isAllowed(e, e.getOption())) {
+            e.setOption(FamilyManager.MarriageOption.BRANCH);
+        }
+        save();
+    }
+
+    public void chooseOption(Player actor, FamilyManager.Engagement e, FamilyManager.MarriageOption option)
+            throws FamilyException {
+        boolean bypass = isAdmin(actor) && !e.involves(actor.getUniqueId());
+        manager.chooseOption(bypass ? e.getChooser() : actor.getUniqueId(), bypass, option);
+        save();
+    }
+
+    /** Het hoofd van de familie van de bruid start de trouwerij. */
+    public void startWedding(Player actor, FamilyManager.Engagement e) throws FamilyException {
+        Family bf = manager.getFamily(e.getBride());
+        boolean bypass = isAdmin(actor) && (bf == null || !bf.isOwner(actor.getUniqueId()));
+        String groom = nameOf(e.getGroom());
+        String bride = nameOf(e.getBride());
+        List<String> before = new java.util.ArrayList<>();
+        for (Family f : new Family[]{manager.getFamily(e.getGroom()), bf}) {
+            if (f != null) {
+                before.add(f.getName());
+            }
+        }
+        FamilyManager.Wedding w = manager.startWedding(actor.getUniqueId(), bypass, e);
+        save();
+        Family family = w.getFamily();
+        refreshAll(family);
+        w.getNewHeads().forEach((f, head) -> {
+            refresh(head);
+            notifyNewHead(f, head);
+        });
+        String outcome = message("wedding-outcome-" + (w.getOption() == null
+                ? w.getType().name().toLowerCase(java.util.Locale.ROOT).replace('_', '-')
+                : w.getOption().name().toLowerCase(java.util.Locale.ROOT).replace('_', '-')),
+                "%name%", family.getName(), "%tag%", family.getTag(), "%lines%", String.join(" & ", before));
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (family.isMember(online.getUniqueId()) || manager.getFamily(online.getUniqueId()) != null
+                    && before.contains(manager.getFamily(online.getUniqueId()).getName())) {
+                send(online, "wedding-done", "%groom%", groom, "%bride%", bride, "%outcome%", outcome);
+            }
+        }
+        if (family.needsRename()) {
+            promptRename(Bukkit.getPlayer(family.getOwner()), family);
+        }
+    }
+
+    /** Admin: direct een aftakking maken zonder verloving/akkoord (bv. tijdens een event). */
     public void forceMarriage(UUID groom, UUID bride) throws FamilyException {
-        completeMarriage(manager.marry(groom, bride));
-    }
-
-    private void completeMarriage(FamilyManager.Marriage m) {
+        FamilyManager.Marriage m = manager.marry(groom, bride);
         Family branch = m.getBranch();
         save();
         refreshAll(branch);
         refresh(m.getNewGroomFamilyHead());
         refresh(m.getNewBrideFamilyHead());
-        String[] repl = {"%name%", branch.getName(), "%tag%", branch.getTag(),
-                "%groomfamily%", m.getGroomFamily().getName(), "%bridefamily%", m.getBrideFamily().getName()};
-        broadcast(branch, null, "marriage-done", repl);
-        broadcast(m.getGroomFamily(), null, "marriage-done-family", repl);
-        broadcast(m.getBrideFamily(), null, "marriage-done-family", repl);
         notifyNewHead(m.getGroomFamily(), m.getNewGroomFamilyHead());
         notifyNewHead(m.getBrideFamily(), m.getNewBrideFamilyHead());
+        String outcome = message("wedding-outcome-branch", "%name%", branch.getName(), "%tag%", branch.getTag(),
+                "%lines%", m.getGroomFamily().getName() + " & " + m.getBrideFamily().getName());
+        broadcast(branch, null, "wedding-done", "%groom%", nameOf(groom), "%bride%", nameOf(bride), "%outcome%", outcome);
         if (branch.needsRename()) {
             promptRename(Bukkit.getPlayer(branch.getOwner()), branch);
         }

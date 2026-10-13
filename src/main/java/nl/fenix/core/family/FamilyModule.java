@@ -103,15 +103,22 @@ public final class FamilyModule {
         if (in == null) {
             return false;
         }
-        YamlConfiguration old = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+        YamlConfiguration versions = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
         boolean changed = false;
-        for (String path : old.getKeys(true)) {
-            if (old.isConfigurationSection(path) || !config.isSet(path)) {
+        // elke sectie (v1, v2, ...) bevat de standaardwaarden van een oudere versie
+        for (String version : versions.getKeys(false)) {
+            org.bukkit.configuration.ConfigurationSection old = versions.getConfigurationSection(version);
+            if (old == null) {
                 continue;
             }
-            if (java.util.Objects.equals(config.get(path), old.get(path)) && jar.isSet(path)) {
-                config.set(path, jar.get(path));
-                changed = true;
+            for (String path : old.getKeys(true)) {
+                if (old.isConfigurationSection(path) || !config.isSet(path)) {
+                    continue;
+                }
+                if (java.util.Objects.equals(config.get(path), old.get(path)) && jar.isSet(path)) {
+                    config.set(path, jar.get(path));
+                    changed = true;
+                }
             }
         }
         if (changed) {
@@ -173,6 +180,12 @@ public final class FamilyModule {
                 }
             }
         }, core);
+        PluginCommand enlope = core.getCommand("enlope");
+        if (enlope != null) {
+            nl.fenix.core.family.command.EnlopeCommand executor = new nl.fenix.core.family.command.EnlopeCommand(service);
+            enlope.setExecutor(executor);
+            enlope.setTabCompleter(executor);
+        }
         PluginCommand family = core.getCommand("family");
         if (family != null) {
             family.setExecutor(command);

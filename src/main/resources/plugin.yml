@@ -9,6 +9,10 @@ commands:
     description: FenixCore info en configs herladen
     usage: /fenixcore reload <all|family|kwa>
     aliases: [fenix]
+  enlope:
+    description: Iemand ten huwelijk vragen (verloving), daarna het trouwmenu
+    usage: /enlope <speler>|accept|deny|cancel
+    aliases: [elope, verloven]
   kwa:
     description: Wands hoofdcommando (zoals /kw)
     usage: /kwa [get|bind|unbind|spells|effect|create|info|help|dev|check|reload]

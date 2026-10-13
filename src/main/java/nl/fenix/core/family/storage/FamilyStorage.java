@@ -46,6 +46,7 @@ public class FamilyStorage {
                 }
             }
         }
+        loadEngagements(yaml, manager);
         ConfigurationSection people = yaml.getConfigurationSection("people");
         if (people != null) {
             Genealogy tree = manager.getGenealogy();
@@ -63,9 +64,29 @@ public class FamilyStorage {
                     for (String sibling : p.getStringList("siblings")) {
                         tree.loadSibling(uuid, UUID.fromString(sibling));
                     }
+                    for (String origin : p.getStringList("origins")) {
+                        tree.addOrigin(uuid, origin);
+                    }
                 } catch (RuntimeException ex) {
                     logger.warning("Stamboom van '" + key + "' kon niet geladen worden: " + ex);
                 }
+            }
+        }
+    }
+
+    private void loadEngagements(YamlConfiguration yaml, FamilyManager manager) {
+        for (java.util.Map<?, ?> map : yaml.getMapList("engagements")) {
+            try {
+                FamilyManager.Engagement e = new FamilyManager.Engagement(UUID.fromString(String.valueOf(map.get("groom"))),
+                        UUID.fromString(String.valueOf(map.get("bride"))));
+                e.setGroomChooses(!"bride".equals(String.valueOf(map.get("chooser"))));
+                Object option = map.get("option");
+                if (option != null) {
+                    e.setOption(FamilyManager.MarriageOption.valueOf(String.valueOf(option)));
+                }
+                manager.loadEngagement(e);
+            } catch (RuntimeException ex) {
+                logger.warning("Verloving kon niet geladen worden: " + ex);
             }
         }
     }
@@ -141,6 +162,21 @@ public class FamilyStorage {
             if (!siblings.isEmpty()) {
                 yaml.set(path + ".siblings", siblings);
             }
+            if (!tree.originsOf(uuid).isEmpty()) {
+                yaml.set(path + ".origins", new ArrayList<>(tree.originsOf(uuid)));
+            }
+        }
+        List<java.util.Map<String, Object>> engagements = new ArrayList<>();
+        for (FamilyManager.Engagement e : manager.getEngagements()) {
+            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("groom", e.getGroom().toString());
+            map.put("bride", e.getBride().toString());
+            map.put("chooser", e.isGroomChooses() ? "groom" : "bride");
+            map.put("option", e.getOption().name());
+            engagements.add(map);
+        }
+        if (!engagements.isEmpty()) {
+            yaml.set("engagements", engagements);
         }
         try {
             yaml.save(file);

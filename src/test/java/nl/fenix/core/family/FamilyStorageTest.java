@@ -43,8 +43,15 @@ public class FamilyStorageTest {
         manager.invite(b, bride, sister);
         manager.accept(sister, "Sister");
         manager.setRank(b, bride, false, sister, FamilyRank.SUCCESSOR);
-        manager.propose(head, false, son, bride);
-        Family branch = manager.acceptMarriage(bride).getBranch();
+        manager.requestEngagement(son, bride);
+        FamilyManager.Engagement e = manager.acceptEngagement(bride);
+        Family branch = manager.startWedding(bride, false, e).getFamily();
+        // een openstaande verloving wordt ook bewaard
+        UUID x = UUID.randomUUID();
+        manager.invite(a, head, x);
+        manager.accept(x, "X");
+        manager.requestEngagement(x, sister);
+        manager.acceptEngagement(sister).setGroomChooses(false);
 
         File file = folder.newFile("families.yml");
         new FamilyStorage(file, logger).save(manager);
@@ -66,6 +73,11 @@ public class FamilyStorageTest {
         assertTrue(loaded.getGenealogy().parentsOf(son).contains(head));
         assertEquals(bride, loaded.getGenealogy().partnerOf(son));
         assertSame(lb, loaded.getFamily(bride));
+        assertEquals(java.util.List.of("Dokker Lijn"), loaded.getGenealogy().originsOf(son));
+        FamilyManager.Engagement le = loaded.getEngagement(x);
+        assertNotNull(le);
+        assertEquals(sister, le.getBride());
+        assertEquals(sister, le.getChooser());
     }
 
     @Test

@@ -441,22 +441,38 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         new TreeGui(service, family, p).open(p);
     }
 
-    /** /family marriage &lt;groom&gt; &lt;bride&gt; | accept | deny | force &lt;groom&gt; &lt;bride&gt; (admin) */
+    /** /family marriage [speler]: trouwmenu | force &lt;groom&gt; &lt;bride&gt; (admin, direct een aftakking) */
     private void marriage(Player p, String[] args) throws FamilyException {
-        if (args.length == 1 && args[0].equalsIgnoreCase("accept")) {
-            service.acceptMarriage(p);
-        } else if (args.length == 1 && (args[0].equalsIgnoreCase("deny") || args[0].equalsIgnoreCase("weiger"))) {
-            service.denyMarriage(p);
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("force")) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("force")) {
             if (!service.isAdmin(p)) {
                 throw new FamilyException("no-permission");
             }
             service.forceMarriage(player(args[1]), player(args[2]));
-        } else if (args.length == 2) {
-            service.propose(p, player(args[0]), player(args[1]));
+            return;
+        }
+        FamilyManager.Engagement engagement = null;
+        if (args.length >= 1) {
+            engagement = manager.getEngagement(player(args[0]));
         } else {
+            engagement = manager.getEngagement(p.getUniqueId());
+            if (engagement == null) {
+                // hoofd van de familie van een bruid: de eerste verloving waar hij de trouwerij moet starten
+                for (FamilyManager.Engagement e : manager.getEngagements()) {
+                    Family bf = manager.getFamily(e.getBride());
+                    if (bf != null && bf.isOwner(p.getUniqueId())) {
+                        engagement = e;
+                        break;
+                    }
+                }
+            }
+        }
+        if (engagement == null) {
             throw new FamilyException("usage-marriage");
         }
+        if (!service.canView(p, engagement)) {
+            throw new FamilyException("no-permission");
+        }
+        service.openWedding(p, engagement);
     }
 
     /** /family rename &lt;naam&gt; &lt;tag&gt; [familie-tag als admin] */
@@ -610,7 +626,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                 case "tree":
                     return filter(Arrays.asList("link", "unlink"), args[1]);
                 case "marriage":
-                    List<String> options = new ArrayList<>(Arrays.asList("accept", "deny"));
+                    List<String> options = new ArrayList<>();
                     if (sender.hasPermission("family.admin")) {
                         options.add("force");
                     }
