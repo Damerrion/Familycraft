@@ -102,6 +102,35 @@ In dev mode (elk onderdeel aan/uit te zetten onder `dev:` in `wands.yml`):
 Permissies: `family.use` (standaard iedereen), `family.create` (de gekochte rechten), `family.admin`
 (gratis aanmaken, `disband <tag>` / `kick <tag> <speler>` voor elke familie).
 
+### Overzicht, editor, rangen en stamboom
+| Commando | Wat |
+|---|---|
+| `/family list` | GUI met alle families (familiewapen, tag, hoofd, leden, afstamming). Klik = leden en stamboom |
+| `/family editor [tag]` | Familiewapen (klik met een banner), info, leden met rang en relaties, stamboom. Alleen het hoofd (of `family.admin`) kan bewerken |
+| `/family rank give <speler\|UUID> <rang>` | Rangen: Family-head, Successor, Spare-Heir, Consort, Heir's Consort, Children of the House (`/family rank list`). Family-head geven = het hoofd overdragen |
+| `/family tree link <parent\|child\|partner\|sibling> <a> <b>` / `unlink <a> <b>` | Stamboom koppelen (ook via de editor) |
+| `/family crest` | Banner in je hand wordt het familiewapen |
+
+Nieuwe leden krijgen de rang Children of the House. Hoeveel leden een rang mogen hebben staat onder `ranks` in
+`family.yml` (standaard 1 Successor en 1 Spare-Heir). De stamboom hoort bij de speler, dus relaties blijven bestaan
+als iemand naar een aftakking gaat.
+
+### Huwelijken en aftakkingen
+1. Het hoofd van de familie van de bruidegom: `/family marriage <bruidegom> <bruid>`.
+2. Het hoofd van de familie van de bruid: `/family marriage accept` (of `deny`; ook klikbaar in de chat).
+3. Het bruidspaar verlaat hun families en vormt een **aftakking**: `Dokker Lijn` + `Adamantie Lijn` ->
+   **`Dokker-Adamantie Lijn` [DAL]** (zonder gedeeld achtervoegsel: `A-B`, tag = beginletters). De bruidegom wordt
+   Family-head, de bruid Consort. Afstamming en familiewapen komen van de familie van de bruidegom.
+4. Was de bruidegom of bruid familiehoofd, dan neemt de Successor (of Spare-Heir) dat over. Zonder opvolger kan het
+   huwelijk niet.
+5. Komen er 4 families in de naam (`A-B-C-D`), dan krijgt het hoofd een popup om een nieuwe naam en tag te kiezen
+   (`/family rename <naam> <tag>`); daarmee begint een nieuwe lijn.
+
+Admins: `/family marriage force <bruidegom> <bruid>` (zonder akkoord, bv. tijdens een event).
+
+De **familie afstamming** (kingdom van het hoofd) wordt bij de oprichting vastgelegd en blijft staan als het hoofd
+later van kingdom wisselt.
+
 ### Prefix in de chat / boven het hoofd
 
 FenixCore registreert placeholders in KingdomCraft: `{family_tag}`, `{family_prefix}`, `{family_name}`.

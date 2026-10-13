@@ -44,8 +44,21 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
   `ReceiverList` (contains op UUID, want KingdomCraft doet `receivers.contains(sender)` en social spy). De wrapper
   stuurt dezelfde regel als BungeeCord-chatcomponenten met hover/klik op het `{family_prefix}`-stuk; KingdomCraft
   doet verder alles zelf (cooldown, social spy, log, DiscordSRV).
-- "Familie afstamming" = kingdom van de eigenaar, gecached op de familie (`kingdom` in families.yml) zodat het ook
-  offline/async getoond kan worden.
+- "Familie afstamming" = kingdom van het hoofd **bij de oprichting**, vastgelegd in families.yml (`kingdom`).
+  Blijft staan als het hoofd van kingdom wisselt (gebruiker, 2026-10-13). Wordt alleen ingevuld als hij nog leeg is.
+- GUI's (`family.gui`, Paper-inventories met `Gui`-holder + `GuiListener`): `/family list` (overzicht met banners),
+  `/family editor` (crest, leden, `MemberGui`, `PickMemberGui`, `TreeGui` per generatie), `RenameGui` (popup).
+  Gedeelde acties (rang, stamboom, crest, huwelijk, hernoemen) in `FamilyService`, zodat commando en GUI hetzelfde doen.
+- Rangen (`FamilyRank`): Family-head, Successor, Spare-Heir, Consort, Heir's Consort, Children of the House
+  (standaard voor nieuwe leden). `/family rank give <speler|UUID> <rang>`; Family-head geven = hoofd overdragen.
+- Stamboom (`Genealogy`): ouder/kind (max 2 ouders, geen lussen), partner (1), broer/zus; per speler opgeslagen
+  (`people:` in families.yml), alleen leden van dezelfde familie koppelen.
+- Huwelijk (afgesproken met de gebruiker): hoofd familie bruidegom stelt voor, hoofd familie bruid accepteert. Het
+  bruidspaar (alleen die twee) vormt een **aftakking**; A en B blijven bestaan. Naam: gedeeld achtervoegsel
+  ("Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn"), anders "A-B". Tag = beginletters (DAL); mag langer
+  zijn dan max-tag-length. Bruidegom = hoofd, bruid = Consort. Was een van beiden hoofd: Successor (anders Spare-Heir)
+  neemt over, anders kan het niet. Vanaf 4 families in de naam (`marriage.rename-at-families`) of bij een bezette
+  naam/tag: `needs-rename`, popup voor het hoofd (bij huwelijk en bij inloggen), `/family rename <naam> <tag>`.
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").
 

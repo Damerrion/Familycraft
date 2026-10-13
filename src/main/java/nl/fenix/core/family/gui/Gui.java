@@ -53,7 +53,7 @@ public abstract class Gui implements InventoryHolder {
     }
 
     protected void closeLater(Player player) {
-        Bukkit.getScheduler().runTask(service.module().plugin(), player::closeInventory);
+        Bukkit.getScheduler().runTask(service.module().plugin(), () -> player.closeInventory());
     }
 
     /** Tekst uit {@code gui.<key>} in family.yml. */
