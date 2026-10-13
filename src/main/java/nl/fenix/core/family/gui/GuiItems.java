@@ -32,9 +32,14 @@ public final class GuiItems {
         return item;
     }
 
+    /**
+     * Spelershoofd op basis van alleen de (echte) UUID. Niet via de online speler: een disguise/skin-plugin
+     * (bv. als RP-character) past diens profiel aan, en dan zou het hoofd de vermomming laten zien. Met alleen de
+     * UUID haalt de client de echte skin zelf op.
+     */
     public static ItemStack head(UUID player, String name, List<String> lore) {
         ItemStack item = item(Material.PLAYER_HEAD, name, lore);
-        item.editMeta(SkullMeta.class, meta -> meta.setOwningPlayer(Bukkit.getOfflinePlayer(player)));
+        item.editMeta(SkullMeta.class, meta -> meta.setPlayerProfile(Bukkit.createProfile(player)));
         return item;
     }
 
