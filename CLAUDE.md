@@ -60,6 +60,9 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - `/family list` = families van het kingdom waar je NU in zit (afstamming = vastgelegd kingdom van de familie);
   `/family list <kingdom>`, `/family list all`; een familietag opent die familie.
 - Stamboom-regel: ouder/kind (ook voorouder/afstammeling) kan geen broer/zus zijn en andersom (`tree-sibling-parent`).
+- Ontkoppelen kan ook met iemand in een andere familie (relaties horen bij de speler): "Ontkoppelen" in het lid-menu
+  toont alle relaties (`Genealogy.relativesOf`), `/family tree unlink <lid> <speler>` (hoofd), en
+  `/family tree unlink <speler>` = je eigen relatie verbreken (binnen dezelfde familie alleen via het hoofd).
 - TreeGui: rij per generatie met gekleurde markering in kolom 0, koppels met roze ❤-ruit ertussen, gesorteerd op de
   plek van de ouders, naamkleur per rang (`gui.rank-colors`), scrollen omhoog/omlaag en links/rechts.
 - Stamboom (`Genealogy`): ouder/kind (max 2 ouders, geen lussen), partner (1), broer/zus; per speler opgeslagen

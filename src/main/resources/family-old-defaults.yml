@@ -45,3 +45,8 @@ v2:
     - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
     - '&6/family marriage <bruidegom> <bruid> &7- Huwelijksaanzoek (hoofd)'
     - '&6/family crest &7- Banner in je hand als familiewapen'
+v3:
+  gui:
+    unlink-lore: '&7Haal een relatie van %player% weg'
+  messages:
+    usage-tree: '&cGebruik: &f/family tree link <parent|child|partner|sibling> <a> <b>&c, &f/family tree unlink <a> <b>&c of &f/family tree [tag]'

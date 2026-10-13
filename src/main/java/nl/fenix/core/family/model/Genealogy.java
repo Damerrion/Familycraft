@@ -60,6 +60,17 @@ public class Genealogy {
         return children;
     }
 
+    /** Iedereen met een relatie met deze speler (ouders, kinderen, partner, broers/zussen), in welke familie ook. */
+    public Set<UUID> relativesOf(UUID player) {
+        Set<UUID> all = new LinkedHashSet<>(parentsOf(player));
+        all.addAll(childrenOf(player));
+        if (partners.get(player) != null) {
+            all.add(partners.get(player));
+        }
+        all.addAll(siblingsOf(player));
+        return all;
+    }
+
     public UUID partnerOf(UUID player) {
         return partners.get(player);
     }

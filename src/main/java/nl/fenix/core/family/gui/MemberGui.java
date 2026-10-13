@@ -69,7 +69,8 @@ public final class MemberGui extends Gui {
                         service.link(p(e), family, Genealogy.Relation.SIBLING, member, other)));
         set(32, GuiItems.item(Material.SHEARS, text("unlink", "&cOntkoppelen"),
                 List.of(text("unlink-lore", "&7Haal een relatie van %player% weg").replace("%player%", name))),
-                e -> pick(e, text("pick-unlink", "&8Ontkoppelen van %player%"), other ->
+                e -> pickFrom(e, text("pick-unlink", "&8Ontkoppelen van %player%"),
+                        new java.util.ArrayList<>(service.manager().getGenealogy().relativesOf(member)), other ->
                         service.unlink(p(e), family, member, other)));
 
         if (!family.isOwner(member)) {
@@ -108,6 +109,20 @@ public final class MemberGui extends Gui {
             service.send(player, ex.getKey());
         }
         openLater(player, family.isMember(member) ? new MemberGui(service, family, member) : new EditorGui(service, family, player));
+    }
+
+    /** Kiezen uit een eigen lijst (bv. alle relaties, ook buiten de familie). */
+    private void pickFrom(InventoryClickEvent e, String title, List<UUID> candidates, Action<UUID> onPick) {
+        openLater(p(e), new PickMemberGui(service, family, title.replace("%player%", service.nameOf(member)), candidates,
+                other -> {
+                    try {
+                        onPick.run(other);
+                    } catch (FamilyException ex) {
+                        service.send(p(e), ex.getKey());
+                    }
+                    openLater(p(e), new MemberGui(service, family, member));
+                },
+                () -> openLater(p(e), new MemberGui(service, family, member))));
     }
 
     private void pick(InventoryClickEvent e, String title, Action<UUID> onPick) {

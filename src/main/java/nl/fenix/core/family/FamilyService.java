@@ -242,6 +242,12 @@ public final class FamilyService {
         send(actor, "tree-unlinked", "%a%", nameOf(a), "%b%", nameOf(b));
     }
 
+    public void unlinkSelf(Player actor, UUID other) throws FamilyException {
+        manager.unlinkSelf(actor.getUniqueId(), other);
+        save();
+        send(actor, "tree-unlinked", "%a%", actor.getName(), "%b%", nameOf(other));
+    }
+
     public void setCrest(Player actor, Family family, ItemStack banner) throws FamilyException {
         if (!GuiItems.isBanner(banner)) {
             throw new FamilyException("crest-no-banner");

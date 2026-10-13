@@ -32,7 +32,14 @@ final class Lore {
     static List<String> member(FamilyService service, Family family, UUID member) {
         Genealogy tree = service.manager().getGenealogy();
         List<String> lines = new ArrayList<>();
-        lines.add(line(service, "member-rank", service.rankName(family.getRank(member))));
+        // iemand uit een andere familie (bv. bij ontkoppelen): die familie en zijn rang daar tonen
+        Family actual = family.isMember(member) ? family : service.manager().getFamily(member);
+        if (actual != family) {
+            lines.add(line(service, "member-family", actual == null ? "-" : actual.getName()));
+        }
+        if (actual != null) {
+            lines.add(line(service, "member-rank", service.rankName(actual.getRank(member))));
+        }
         UUID partner = tree.partnerOf(member);
         lines.add(line(service, "member-partner", partner == null ? "-" : service.nameOf(partner)));
         lines.add(line(service, "member-parents", names(service, tree.parentsOf(member))));
@@ -40,7 +47,8 @@ final class Lore {
         lines.add(line(service, "member-siblings", names(service, tree.siblingsOf(member))));
         if (!tree.originsOf(member).isEmpty()) {
             // afkomst: altijd terug te volgen uit welke lijn(en) iemand officieel stamt
-            lines.add(line(service, "member-origins", String.join(" → ", tree.originsOf(member)) + " → " + family.getName()));
+            lines.add(line(service, "member-origins", String.join(" → ", tree.originsOf(member))
+                    + (actual == null ? "" : " → " + actual.getName())));
         }
         return lines;
     }

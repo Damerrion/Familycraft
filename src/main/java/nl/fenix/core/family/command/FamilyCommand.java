@@ -411,7 +411,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         service.setRank(p, family, memberOf(family, args[1]), rank);
     }
 
-    /** /family tree [tag] | link &lt;parent|partner|sibling&gt; &lt;a&gt; &lt;b&gt; | unlink &lt;a&gt; &lt;b&gt; */
+    /** /family tree [tag] | link &lt;parent|partner|sibling&gt; &lt;a&gt; &lt;b&gt; | unlink &lt;a&gt; &lt;b&gt; | unlink &lt;speler&gt; (jezelf) */
     private void tree(Player p, String[] args) throws FamilyException {
         if (args.length >= 4 && args[0].equalsIgnoreCase("link")) {
             Genealogy.Relation relation = Genealogy.Relation.parse(args[1]);
@@ -427,8 +427,13 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("unlink")) {
+            // het eerste is een lid van de familie, de ander mag in een andere familie zitten
             Family family = targetFamily(p, args[1]);
-            service.unlink(p, family, memberOf(family, args[1]), memberOf(family, args[2]));
+            service.unlink(p, family, memberOf(family, args[1]), player(args[2]));
+            return;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("unlink")) {
+            service.unlinkSelf(p, player(args[1]));
             return;
         }
         if (args.length >= 1 && (args[0].equalsIgnoreCase("link") || args[0].equalsIgnoreCase("unlink"))) {

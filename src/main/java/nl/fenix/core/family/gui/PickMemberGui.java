@@ -17,9 +17,20 @@ public final class PickMemberGui extends Gui {
 
     public PickMemberGui(FamilyService service, Family family, String title, Set<UUID> exclude,
                          Consumer<UUID> onPick, Runnable onBack) {
+        this(service, family, title, without(family.getMembers().keySet(), exclude), onPick, onBack);
+    }
+
+    private static List<UUID> without(java.util.Collection<UUID> all, Set<UUID> exclude) {
+        List<UUID> list = new ArrayList<>(all);
+        list.removeAll(exclude);
+        return list;
+    }
+
+    /** Kies uit deze spelers (mogen ook in een andere familie zitten, bv. bij ontkoppelen). */
+    public PickMemberGui(FamilyService service, Family family, String title, List<UUID> candidates,
+                         Consumer<UUID> onPick, Runnable onBack) {
         super(service, 6, title);
-        List<UUID> members = new ArrayList<>(family.getMembers().keySet());
-        members.removeAll(exclude);
+        List<UUID> members = new ArrayList<>(candidates);
         members.sort(Comparator.comparing((UUID u) -> family.getRank(u).ordinal())
                 .thenComparing(u -> service.nameOf(u).toLowerCase()));
         for (int i = 0; i < 45 && i < members.size(); i++) {

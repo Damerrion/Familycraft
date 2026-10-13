@@ -93,6 +93,26 @@ public class FamilyTreeTest {
     }
 
     @Test
+    public void relationsWithAnotherFamilyCanBeUnlinked() throws Exception {
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, sonA);
+        // zoon begint een eigen familie: de oude relatie moet nog te verbreken zijn
+        manager.leave(sonA);
+        Family own = manager.create(sonA, "SonA", "Nieuwe_Lijn", "NL");
+        assertTrue(manager.getGenealogy().relativesOf(sonA).contains(headA));
+        manager.unlinkSelf(sonA, headA);
+        assertTrue(manager.getGenealogy().parentsOf(sonA).isEmpty());
+        // ook als hoofd via de familie (de ander zit in een andere familie)
+        manager.getGenealogy().loadParent(headA, sonA);
+        manager.unlink(own, sonA, false, sonA, headA);
+        assertTrue(manager.getGenealogy().parentsOf(sonA).isEmpty());
+        // binnen dezelfde familie beslist het hoofd
+        UUID other = UUID.randomUUID();
+        join(a, headA, other, "Other");
+        manager.link(a, headA, false, Genealogy.Relation.SIBLING, heirA, other);
+        assertKey("tree-unlink-ask-head", () -> manager.unlinkSelf(heirA, other));
+    }
+
+    @Test
     public void dutchRankNames() {
         assertEquals(FamilyRank.SUCCESSOR, FamilyRank.parse("opvolger"));
         assertEquals(FamilyRank.CHILD, FamilyRank.parse("Kind van het Huis"));

@@ -330,6 +330,21 @@ public class FamilyManager {
         genealogy.link(relation, a, b);
     }
 
+    /**
+     * Je eigen relatie met iemand verbreken. Zit die ander in een andere familie (bv. na een nieuwe familie of een
+     * huwelijk), dan mag dat altijd; binnen dezelfde familie beslist het hoofd.
+     */
+    public void unlinkSelf(UUID actor, UUID other) throws FamilyException {
+        Family own = byMember.get(actor);
+        if (own != null && own == byMember.get(other) && !own.isOwner(actor)) {
+            throw new FamilyException("tree-unlink-ask-head");
+        }
+        if (!genealogy.unlink(actor, other)) {
+            throw new FamilyException("tree-no-relation");
+        }
+    }
+
+    /** Relatie tussen een lid ({@code a} of {@code b}) en iemand anders verbreken; die ander mag in een andere familie zitten. */
     public void unlink(Family family, UUID actor, boolean bypass, UUID a, UUID b) throws FamilyException {
         requireOwner(family, actor, bypass);
         if (!family.isMember(a) && !family.isMember(b)) {
