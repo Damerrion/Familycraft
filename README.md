@@ -1,19 +1,92 @@
-# FamilyCraft
+# FenixCore
 
-Family-systeem als addon voor [KingdomCraft](https://kingdomcraft.be). Draait als aparte plugin die via de
-publieke KingdomCraft API (`KingdomCraftProvider`) aanhaakt: de KingdomCraft jars worden niet aangepast of meegeleverd.
+De FenixKingdom-addon voor KingdomCraft (Paper 1.21.4). Eén plugin met twee modules:
+
+| Module | Voorheen | Commando's | Instellingen |
+|---|---|---|---|
+| **wands** | KingdomWandsAddon | `/kwa`, `/bind`, `/unbind` | `plugins/FenixCore/wands.yml` |
+| **family** | FamilyCraft | `/family` (`/familie`, `/fam`) | `plugins/FenixCore/family.yml` (+ data in `families.yml`) |
+
+Modules aan/uit in `plugins/FenixCore/config.yml`. Commando's en permissies (`kwa.*`, `family.*`) zijn hetzelfde
+gebleven, dus LuckPerms hoeft niet aangepast te worden.
+
+## Overstappen van KingdomWandsAddon / FamilyCraft
+1. Zet `FenixCore-x.y.z.jar` in `plugins/` en **verwijder** `KingdomWandsAddon` en `FamilyCraft` (jars).
+2. Start de server. FenixCore neemt bij de eerste start automatisch over:
+   `plugins/KingdomWandsAddon/config.yml` -> `wands.yml`, `plugins/FamilyCraft/config.yml` -> `family.yml`,
+   `plugins/FamilyCraft/families.yml` -> `families.yml` (gekopieerd; de oude mappen blijven als backup staan).
+3. Wands die al in het spel zijn blijven gewoon werken.
+
+Staat een oude plugin nog in `plugins/`, dan start die module van FenixCore niet (melding in de console),
+zodat wands en families niet dubbel afgehandeld worden.
 
 ## Bouwen
+Nodig: Java 21 (JDK). Maven hoef je niet te installeren, de wrapper haalt hem zelf op.
 
-1. Zet `KingdomCraftStarter-7.1.6-all.jar` in `libs/` (staat in `.gitignore`).
-2. `mvn package` -> `target/FamilyCraft-1.0.0.jar` in `plugins/` naast KingdomCraft (Vault is optioneel).
+Windows: `mvnw.cmd package` - Linux/macOS: `./mvnw package` -> `target/FenixCore-1.0.0.jar`.
 
-## Een familie bestaat uit
+Zonder iets te installeren: elke push bouwt de jar op GitHub (tab **Actions** -> workflow **Build** ->
+onderaan **Artifacts** -> `FenixCore`).
+
+KingdomCraft is nodig voor de family-module; de wands werken ook zonder (dan raken spells iedereen). Vault is optioneel.
+
+# Wands-module
+
+### Wands
+Alle wands staan in `wands.yml` onder `wands:`. Een nieuwe wand = een nieuw blok daar (naam, lore, material,
+kingdom, effect en welke spells), daarna `/kwa reload`. Alleen een nieuwe spell heeft een nieuwe build nodig.
+Elke wand krijgt automatisch de permissies `kwa.wand.<wand>` (krijgen) en `kwa.use.<wand>` (gebruiken), standaard op.
+
+Nu: `tygron` = **Tygron Deathwhistle** (Scream, Mark). Krijgen met `/kwa get tygron` (hoofdletters maken niet uit),
+of kies hem uit het menu met `/kwa get`.
+
+### Commando's (zoals KingdomWands Premium)
+Alles staat standaard aan voor operators; niet-ops krijgen permissies via LuckPerms. `kwa.*` geeft alles.
+
+| Commando | Permissie |
+|---|---|
+| `/kwa` of `/kwa info` | - |
+| `/kwa <pagina>` of `/kwa help [pagina]` | - |
+| `/kwa get` (menu met alle wands) | `kwa.getwand` + `kwa.wand.<wand>` |
+| `/kwa get <wand> [speler]` (bv. `/kwa get tygron`) | `kwa.wand.<wand>` |
+| `/kwa create <wand> [naam]` | `kwa.create` + `kwa.wand.<wand>` |
+| `/bind all`, `/bind <slot> <spell>` (of `/kwa bind ...`) | `kwa.bind` of de wand mogen gebruiken, + `kwa.spells.<Spell>` |
+| `/unbind <slot\|all>` (of `/kwa unbind ...`) | `kwa.unbind` of de wand mogen gebruiken |
+| `/kwa spells [spell]` (ook `list`, `spell`, `spelllist`) | `kwa.spells` of een wand mogen gebruiken |
+| `/kwa effect <effect>` | `kwa.effect` |
+| `/kwa dev [on\|off]` | `kwa.dev` |
+| `/kwa check <speler>` | `kwa.dev` of `kwa.admin` |
+| `/kwa reload` | `kwa.admin` |
+
+Wand gebruiken: `kwa.use.<wand>` (bv. `kwa.use.tygron` voor de Stamleider; `kwa.use` = alle wands) + `kwa.spells.<Spell>`.
+Zonder die permissie is de wand een gewoon item: klikken doet niets.
+`/bind` en `/unbind` worden afgevangen als je een wand van deze addon vasthoudt (of altijd, als geen andere plugin
+zoals KingdomWands `/bind` heeft). Alle teksten staan onder `messages:` in `wands.yml`.
+
+Besturing: rechtermuis = volgende spell, shift + rechtermuis = vorige, linkermuis (ook op een speler) = casten.
+Elke spell heeft een eigen switch-toon bij het selecteren (`select-sound` per spell in `wands.yml`; ook resourcepack-geluiden).
+Spells raken iedereen behalve het `kingdom` van de wand en de bondgenoten daarvan. De caster raakt zichzelf nooit
+(behalve in dev mode).
+
+### Dev mode (alleen testen)
+`/kwa dev` zet dev mode aan of uit voor **jouw** spells (na een herstart, of als je `kwa.dev` kwijtraakt, staat het uit).
+Met `ignore-kingdom: true` raken je spells dan ook spelers van je eigen kingdom, bondgenoten en creative (standaard uit).
+`/kwa check <speler>` laat zien of een speler geraakt wordt en waarom (kingdom, relatie, openstaand ally-verzoek, dev mode).
+In dev mode (elk onderdeel aan/uit te zetten onder `dev:` in `wands.yml`):
+- geen cooldowns
+- spells raken jezelf ook
+- spells raken ook mobs (zo kun je Scream en Mark alleen testen)
+- je eigen kingdom, bondgenoten en spelers in creative worden ook geraakt
+- debug in de chat: wie er geraakt is
+
+# Family-module
+
+### Een familie bestaat uit
 
 1. **Naam** - geen cijfers, max 30 tekens (`_` wordt een spatie: `Rheanos_Decendants`).
 2. **Tag** - geen cijfers, max 3 tekens, de prefix voor de spelersnaam.
 
-## Commando's (`/family`, aliassen `/familie`, `/fam`)
+### Commando's (`/family`, aliassen `/familie`, `/fam`)
 
 | Commando | Wie | Wat |
 |---|---|---|
@@ -29,12 +102,12 @@ publieke KingdomCraft API (`KingdomCraftProvider`) aanhaakt: de KingdomCraft jar
 Permissies: `family.use` (standaard iedereen), `family.create` (de gekochte rechten), `family.admin`
 (gratis aanmaken, `disband <tag>` / `kick <tag> <speler>` voor elke familie).
 
-## Prefix in de chat / boven het hoofd
+### Prefix in de chat / boven het hoofd
 
-FamilyCraft registreert placeholders in KingdomCraft: `{family_tag}`, `{family_prefix}`, `{family_name}`.
+FenixCore registreert placeholders in KingdomCraft: `{family_tag}`, `{family_prefix}`, `{family_name}`.
 
-- **Display name** (standaard aan, `display-name` in `config.yml`): KingdomCraft zet de display name zelf op
-  `<kingdom prefix> <naam>`. FamilyCraft overschrijft die met
+- **Display name** (standaard aan, `display-name` in `family.yml`): KingdomCraft zet de display name zelf op
+  `<kingdom prefix> <naam>`. FenixCore overschrijft die met
   `{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}`, dus de familietag staat direct na het koninkrijk.
   Chatplugins die de display name gebruiken (EssentialsChat e.d.) tonen dan `[Gast] [RD] doomerix`.
 - **KingdomCraft chat** (`plugins/KingdomCraft/chat.yml`): zet `{family_prefix}` direct voor de naam, zonder
@@ -44,11 +117,11 @@ FamilyCraft registreert placeholders in KingdomCraft: `{family_tag}`, `{family_p
 - **Premium nametags/tablist** (`plugins/KingdomCraftPremium/config.yml`):
   `prefix_format: '{kingdom_nametag_prefix}{family_prefix}{rank_nametag_prefix}'`
 
-### Hover / klik op de prefix
+#### Hover / klik op de prefix
 
 In de KingdomCraft chat laat `{family_prefix}` bij hover de familie-info zien (naam, afkorting, afstamming,
 datum opgericht, eigenaar, leden) en voert een klik `/family members <tag>` uit. Instellen of uitzetten via
-`chat-hover` in `config.yml`. Werkt alleen met `{family_prefix}` (niet met `{family_tag}`).
+`chat-hover` in `family.yml`. Werkt alleen met `{family_prefix}` (niet met `{family_tag}`).
 
 Na het wijzigen van `chat.yml` / Premium config: `/k reload` (of herstart).
-Alle teksten en het prefixformaat staan in `config.yml`. Families worden opgeslagen in `plugins/FamilyCraft/families.yml`.
+Alle teksten en het prefixformaat staan in `family.yml`. Families worden opgeslagen in `plugins/FenixCore/families.yml`.

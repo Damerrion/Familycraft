@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
+import java.util.function.Function;
 
 /** A chat receiver that delegates everything to the real player, but sends chat lines with the family hover. */
 class HoverReceiver implements PlatformPlayer {
@@ -19,17 +20,25 @@ class HoverReceiver implements PlatformPlayer {
     private final String prefix;
     private final HoverEvent hover;
     private final ClickEvent click;
+    /** UUID -> online Bukkit-speler (null als offline); in tests zonder server te vervangen. */
+    private final Function<UUID, Player> players;
 
     HoverReceiver(PlatformPlayer delegate, String prefix, HoverEvent hover, ClickEvent click) {
+        this(delegate, prefix, hover, click, Bukkit::getPlayer);
+    }
+
+    HoverReceiver(PlatformPlayer delegate, String prefix, HoverEvent hover, ClickEvent click,
+                  Function<UUID, Player> players) {
         this.delegate = delegate;
         this.prefix = prefix;
         this.hover = hover;
         this.click = click;
+        this.players = players;
     }
 
     @Override
     public void sendMessage(String message) {
-        Player player = Bukkit.getPlayer(delegate.getUniqueId());
+        Player player = players.apply(delegate.getUniqueId());
         BaseComponent[] components = player == null || message == null ? null
                 : FamilyHover.build(message, prefix, hover, click);
         if (components == null) {

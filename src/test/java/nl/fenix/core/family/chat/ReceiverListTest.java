@@ -41,8 +41,9 @@ public class ReceiverListTest {
         PlatformPlayer spy = player(UUID.randomUUID(), new ArrayList<>());
 
         ReceiverList receivers = new ReceiverList();
-        receivers.add(new HoverReceiver(sender, "[TW] ", null, null));
-        receivers.add(new HoverReceiver(other, "[TW] ", null, null));
+        // geen Bukkit-server in de test: niemand is "online", dus de wrapper valt terug op de gewone tekst
+        receivers.add(new HoverReceiver(sender, "[TW] ", null, null, uuid -> null));
+        receivers.add(new HoverReceiver(other, "[TW] ", null, null, uuid -> null));
 
         // what KingdomCraft's ChatManagerImpl.dispatch does with the (real) player objects
         if (!receivers.contains(sender)) {
@@ -52,7 +53,6 @@ public class ReceiverListTest {
         assertTrue(receivers.contains(other));
         assertFalse(receivers.contains(spy));
 
-        // no Bukkit player online in the test, so the wrapper falls back to the plain message
         for (PlatformPlayer p : receivers) {
             p.sendMessage("line");
         }
