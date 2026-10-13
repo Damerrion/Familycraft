@@ -32,6 +32,9 @@ permissions:
   family.create:
     description: Een familie maken (geef dit aan spelers die er een gekocht hebben)
     default: op
+  family.dev:
+    description: /family dev - dev mode om alles alleen te testen (nep-spelers, alles mogen wat een hoofd mag)
+    default: op
   family.admin:
     description: Disband / kick in elke familie en gratis familie maken
     default: op

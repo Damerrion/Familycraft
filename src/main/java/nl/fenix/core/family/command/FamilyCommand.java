@@ -37,7 +37,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
             "accept", "cancel", "create", "disband", "check", "invite", "kick", "leave", "members", "info", "help",
-            "list", "editor", "rank", "tree", "marriage", "rename", "crest");
+            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "dev");
 
     private final FamilyModule plugin;
     private final KingdomCraft kc;
@@ -137,6 +137,9 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     service.setCrest(player(sender), editableFamily(player(sender), rest, 0),
                             player(sender).getInventory().getItemInMainHand());
                     break;
+                case "dev":
+                    dev(player(sender), rest);
+                    break;
                 case "help":
                     for (String line : plugin.getConfig().getStringList("messages.help")) {
                         sender.sendMessage(color(line));
@@ -162,14 +165,14 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     // ------------------------------------------------------------------ subcommands
 
     private void create(Player p, String[] args) throws FamilyException {
-        if (!p.hasPermission("family.create") && !p.hasPermission("family.admin")) {
+        if (!p.hasPermission("family.create") && !service.isAdmin(p)) {
             throw new FamilyException("no-permission");
         }
         if (args.length < 2) {
             throw new FamilyException("usage-create");
         }
         double cost = plugin.getConfig().getDouble("economy.create-cost", 0);
-        boolean pays = cost > 0 && !p.hasPermission("family.admin");
+        boolean pays = cost > 0 && !service.isAdmin(p);
         if (pays) {
             if (economy == null) {
                 throw new FamilyException("economy-unavailable");
@@ -246,7 +249,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     }
 
     private void kick(CommandSender sender, String[] args) throws FamilyException {
-        boolean admin = sender.hasPermission("family.admin");
+        boolean admin = service.isAdmin(sender);
         Family family;
         String targetName;
         if (admin && args.length >= 2 && manager.getFamilyByTag(args[0]) != null) {
@@ -281,7 +284,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     }
 
     private void disband(CommandSender sender, String[] args) throws FamilyException {
-        boolean admin = sender.hasPermission("family.admin");
+        boolean admin = service.isAdmin(sender);
         Family family;
         if (admin && args.length >= 1) {
             family = manager.getFamilyByTag(args[0]);
@@ -480,6 +483,77 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         service.openWedding(p, engagement);
     }
 
+    /**
+     * /family dev [on|off] | fake &lt;naam&gt; [tag] | fakefamily &lt;hoofd&gt; &lt;naam&gt; &lt;tag&gt; | enlope &lt;a&gt; &lt;b&gt; | list | clear.
+     * Dev mode = alles mogen wat een hoofd/admin mag, en nep-spelers om alleen te testen.
+     */
+    private void dev(Player p, String[] args) throws FamilyException {
+        String sub = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
+        if (sub.isEmpty() || sub.equals("on") || sub.equals("off") || sub.equals("aan") || sub.equals("uit")) {
+            boolean on = sub.isEmpty() ? !service.isDev(p) : sub.equals("on") || sub.equals("aan");
+            if (on && !p.hasPermission("family.dev")) {
+                throw new FamilyException("no-permission");
+            }
+            service.setDev(p, on);
+            send(p, on ? "dev-on" : "dev-off");
+            if (on) {
+                for (String line : plugin.getConfig().getStringList("messages.dev-help")) {
+                    p.sendMessage(color(line));
+                }
+            }
+            return;
+        }
+        if (!service.isDev(p)) {
+            throw new FamilyException("dev-not-on");
+        }
+        switch (sub) {
+            case "fake" -> {
+                if (args.length < 2) {
+                    throw new FamilyException("usage-dev");
+                }
+                Family family = args.length > 2 ? manager.getFamilyByTag(args[2]) : manager.getFamily(p.getUniqueId());
+                if (family == null) {
+                    throw new FamilyException(args.length > 2 ? "family-not-found" : "not-in-family");
+                }
+                manager.addFake(family, args[1]);
+                save();
+                send(p, "dev-fake-added", "%player%", args[1], "%name%", family.getName());
+            }
+            case "fakefamily" -> {
+                if (args.length < 4) {
+                    throw new FamilyException("usage-dev");
+                }
+                Family family = manager.createFakeFamily(args[1], args[2], args[3]);
+                save();
+                send(p, "dev-fake-family", "%player%", args[1], "%name%", family.getName(), "%tag%", family.getTag());
+            }
+            case "enlope" -> {
+                if (args.length < 3) {
+                    throw new FamilyException("usage-dev");
+                }
+                FamilyManager.Engagement e = manager.forceEngagement(player(args[1]), player(args[2]));
+                save();
+                send(p, "dev-engaged", "%groom%", service.nameOf(e.getGroom()), "%bride%", service.nameOf(e.getBride()));
+                service.openWedding(p, e);
+            }
+            case "list" -> {
+                List<String> names = new ArrayList<>();
+                for (UUID fake : manager.getFakes()) {
+                    Family f = manager.getFamily(fake);
+                    names.add(service.nameOf(fake) + (f == null ? "" : " [" + f.getTag() + "]"));
+                }
+                send(p, "dev-list", "%count%", String.valueOf(names.size()), "%list%", names.isEmpty() ? "-" : String.join(", ", names));
+            }
+            case "clear" -> {
+                int count = manager.getFakes().size();
+                int families = manager.clearFakes();
+                save();
+                send(p, "dev-cleared", "%count%", String.valueOf(count), "%families%", String.valueOf(families));
+            }
+            default -> throw new FamilyException("usage-dev");
+        }
+    }
+
     /** /family rename &lt;naam&gt; &lt;tag&gt; [familie-tag als admin] */
     private void rename(Player p, String[] args) throws FamilyException {
         if (args.length < 2) {
@@ -628,11 +702,13 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     return filter(kingdoms, args[1]);
                 case "rank":
                     return filter(Arrays.asList("give", "list"), args[1]);
+                case "dev":
+                    return filter(Arrays.asList("on", "off", "fake", "fakefamily", "enlope", "list", "clear"), args[1]);
                 case "tree":
                     return filter(Arrays.asList("link", "unlink"), args[1]);
                 case "marriage":
                     List<String> options = new ArrayList<>();
-                    if (sender.hasPermission("family.admin")) {
+                    if (service.isAdmin(sender)) {
                         options.add("force");
                     }
                     options.addAll(memberNames(sender));

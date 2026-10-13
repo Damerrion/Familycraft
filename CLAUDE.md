@@ -77,6 +77,9 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
   ("Afkomst: A → B"). Verlovingen worden bewaard (`engagements:` in families.yml). Naam samenvoegen: gedeeld
   achtervoegsel ("Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn", tag DAL), anders "A-B"; vanaf 4 families
   in de naam (`marriage.rename-at-families`) of bezette naam/tag: `needs-rename` + popup, `/family rename`.
+- Dev mode family (gebruiker: "alle functies testen"): `/family dev` (`family.dev`, per speler, in geheugen) = admin-
+  bypass overal (`FamilyService.isAdmin`) + nep-spelers (`FamilyManager.addFake/createFakeFamily/forceEngagement/
+  clearFakes`, UUID = nameUUID "FenixCoreFake:<naam>", bewaard als `fakes:` in families.yml).
 - `family-old-defaults.yml`: secties v1, v2, ... met oude standaardwaarden per versie (nieuwe versie onderaan erbij).
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").

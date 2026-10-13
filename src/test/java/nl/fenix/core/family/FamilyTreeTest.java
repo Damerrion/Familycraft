@@ -113,6 +113,27 @@ public class FamilyTreeTest {
     }
 
     @Test
+    public void devFakesCanBeUsedAndCleared() throws Exception {
+        UUID fake = manager.addFake(a, "Testkind");
+        assertTrue(manager.isFake(fake));
+        assertSame(a, manager.getFamily(fake));
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, fake);
+        Family fakeFamily = manager.createFakeFamily("Testhoofd", "Test_Lijn", "TL");
+        UUID fakeHead = FamilyManager.fakeId("Testhoofd");
+        manager.forceEngagement(fake, fakeHead);
+        FamilyManager.Engagement e = manager.getEngagement(fake);
+        assertNotNull(e);
+        assertEquals(1, manager.clearFakes()); // alleen Test Lijn (nep-hoofd, geen echte leden)
+        assertNull(manager.getFamily(fake));
+        assertFalse(a.isMember(fake));
+        assertNull(manager.getFamilyByTag("TL"));
+        assertTrue(manager.getGenealogy().childrenOf(headA).isEmpty());
+        assertNull(manager.getEngagement(fake));
+        assertTrue(manager.getFakes().isEmpty());
+        assertNotNull(fakeFamily);
+    }
+
+    @Test
     public void dutchRankNames() {
         assertEquals(FamilyRank.SUCCESSOR, FamilyRank.parse("opvolger"));
         assertEquals(FamilyRank.CHILD, FamilyRank.parse("Kind van het Huis"));

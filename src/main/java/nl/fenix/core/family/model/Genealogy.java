@@ -218,6 +218,17 @@ public class Genealogy {
         return false;
     }
 
+    /** Alles van deze speler vergeten (dev: nep-spelers opruimen). */
+    public void forget(UUID player) {
+        for (UUID other : relativesOf(player)) {
+            unlink(player, other);
+        }
+        parents.remove(player);
+        siblings.remove(player);
+        names.remove(player);
+        origins.remove(player);
+    }
+
     // ---- laden (zonder controles) ----
 
     public void loadParent(UUID parent, UUID child) {

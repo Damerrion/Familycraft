@@ -90,12 +90,12 @@ public final class WeddingGui extends Gui {
         set(36, GuiItems.item(Material.BARRIER, text("wedding-cancel", "&cVerloving verbreken"),
                 List.of(text("wedding-cancel-lore", "&7Shift-klik (alleen het bruidspaar)"))), e -> {
             Player player = (Player) e.getWhoClicked();
-            if (!e.isShiftClick() || !engagement.involves(player.getUniqueId())) {
+            if (!e.isShiftClick() || (!engagement.involves(player.getUniqueId()) && !service.isAdmin(player))) {
                 return;
             }
             closeLater(player);
             try {
-                service.cancelEngagement(player);
+                service.cancelEngagement(player, engagement);
             } catch (FamilyException ex) {
                 service.send(player, ex.getKey());
             }

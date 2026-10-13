@@ -144,6 +144,19 @@ elk lid in de editor en de stamboom (bv. `Afkomst: Dokker Lijn → Adamantie Lij
 
 Admins: `/family marriage force <bruidegom> <bruid>` (direct een aftakking, zonder verloving/akkoord).
 
+### Dev mode (alleen testen)
+`/family dev` (permissie `family.dev`, standaard op) zet dev mode aan/uit voor **jou** (na een herstart uit). In dev mode
+mag je alles wat een familiehoofd/admin mag (editor van elke familie, rangen, stamboom, rollen en keuze in het
+trouwmenu, trouwerij starten), en kun je alles alleen testen met nep-spelers:
+| Commando | Wat |
+|---|---|
+| `/family dev fake <naam> [tag]` | Nep-lid in je eigen familie (of de familie met die tag) |
+| `/family dev fakefamily <hoofd> <naam> <tag>` | Nep-familie met een nep-hoofd |
+| `/family dev enlope <a> <b>` | Direct verloven (ook nep-spelers) en het trouwmenu openen |
+| `/family dev list` / `clear` | Nep-spelers bekijken / alles opruimen (families met alleen nep-leden worden opgeheven) |
+
+Nep-spelers worden bewaard in families.yml (`fakes:`) tot `/family dev clear`.
+
 De **familie afstamming** (kingdom van het hoofd) wordt bij de oprichting vastgelegd en blijft staan als het hoofd
 later van kingdom wisselt.
 

@@ -152,8 +152,34 @@ public final class FamilyService {
 
     // ------------------------------------------------------------------ rechten / spelers zoeken
 
+    /** Admin, of dev mode aan: alles mogen wat een hoofd mag (andere families, trouwerij starten, ...). */
     public boolean isAdmin(CommandSender sender) {
-        return sender.hasPermission("family.admin");
+        return sender.hasPermission("family.admin") || (sender instanceof Player p && isDev(p));
+    }
+
+    // ------------------------------------------------------------------ dev mode
+
+    /** Spelers met dev mode aan. Alleen in het geheugen: na een herstart staat het uit. */
+    private final java.util.Set<UUID> devs = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** Dev mode aan? Vervalt meteen als de speler family.dev kwijt is. */
+    public boolean isDev(Player player) {
+        if (!devs.contains(player.getUniqueId())) {
+            return false;
+        }
+        if (!player.hasPermission("family.dev")) {
+            devs.remove(player.getUniqueId());
+            return false;
+        }
+        return true;
+    }
+
+    public void setDev(Player player, boolean on) {
+        if (on) {
+            devs.add(player.getUniqueId());
+        } else {
+            devs.remove(player.getUniqueId());
+        }
     }
 
     /** Hoofd van de familie, of admin. */
@@ -304,7 +330,15 @@ public final class FamilyService {
     }
 
     public void cancelEngagement(Player player) throws FamilyException {
-        FamilyManager.Engagement e = manager.cancelEngagement(player.getUniqueId());
+        cancelEngagement(player, manager.getEngagement(player.getUniqueId()));
+    }
+
+    /** Verloving verbreken (het paar zelf, of admin/dev). */
+    public void cancelEngagement(Player player, FamilyManager.Engagement engagement) throws FamilyException {
+        if (engagement == null) {
+            throw new FamilyException("engage-not-engaged");
+        }
+        FamilyManager.Engagement e = manager.cancelEngagement(engagement.getGroom());
         save();
         for (UUID uuid : new UUID[]{e.getGroom(), e.getBride()}) {
             Player p = Bukkit.getPlayer(uuid);
@@ -364,7 +398,7 @@ public final class FamilyService {
 
     public void chooseOption(Player actor, FamilyManager.Engagement e, FamilyManager.MarriageOption option)
             throws FamilyException {
-        boolean bypass = isAdmin(actor) && !e.involves(actor.getUniqueId());
+        boolean bypass = isAdmin(actor) && !e.getChooser().equals(actor.getUniqueId());
         manager.chooseOption(bypass ? e.getChooser() : actor.getUniqueId(), bypass, option);
         save();
     }

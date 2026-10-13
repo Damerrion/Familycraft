@@ -47,6 +47,13 @@ public class FamilyStorage {
             }
         }
         loadEngagements(yaml, manager);
+        for (String fake : yaml.getStringList("fakes")) {
+            try {
+                manager.getFakes().add(UUID.fromString(fake));
+            } catch (IllegalArgumentException ignored) {
+                // kapotte regel overslaan
+            }
+        }
         ConfigurationSection people = yaml.getConfigurationSection("people");
         if (people != null) {
             Genealogy tree = manager.getGenealogy();
@@ -177,6 +184,11 @@ public class FamilyStorage {
         }
         if (!engagements.isEmpty()) {
             yaml.set("engagements", engagements);
+        }
+        if (!manager.getFakes().isEmpty()) {
+            List<String> fakes = new ArrayList<>();
+            manager.getFakes().forEach(f -> fakes.add(f.toString()));
+            yaml.set("fakes", fakes);
         }
         try {
             yaml.save(file);

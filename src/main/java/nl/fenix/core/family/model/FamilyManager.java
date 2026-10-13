@@ -1074,6 +1074,105 @@ public class FamilyManager {
         return parts;
     }
 
+    // ---- dev mode: nep-spelers ----
+
+    /** Nep-spelers (dev mode), zodat je alles alleen kunt testen. Worden bewaard tot /family dev clear. */
+    private final java.util.Set<UUID> fakes = ConcurrentHashMap.newKeySet();
+
+    public static UUID fakeId(String name) {
+        return UUID.nameUUIDFromBytes(("FenixCoreFake:" + name.toLowerCase(Locale.ROOT)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    public boolean isFake(UUID player) {
+        return fakes.contains(player);
+    }
+
+    public java.util.Set<UUID> getFakes() {
+        return fakes;
+    }
+
+    /** Nep-lid toevoegen aan een familie (zonder uitnodiging). */
+    public UUID addFake(Family family, String name) throws FamilyException {
+        UUID uuid = fakeId(name);
+        if (byMember.containsKey(uuid)) {
+            throw new FamilyException("dev-fake-exists");
+        }
+        fakes.add(uuid);
+        family.addMember(uuid, name, FamilyRank.CHILD);
+        byMember.put(uuid, family);
+        genealogy.setName(uuid, name);
+        return uuid;
+    }
+
+    /** Nieuwe familie met een nep-hoofd. */
+    public Family createFakeFamily(String headName, String rawName, String rawTag) throws FamilyException {
+        UUID uuid = fakeId(headName);
+        if (byMember.containsKey(uuid)) {
+            throw new FamilyException("dev-fake-exists");
+        }
+        Family family = create(uuid, headName, rawName, rawTag);
+        fakes.add(uuid);
+        return family;
+    }
+
+    /** Verloving direct vastleggen (dev: geen aanzoek/akkoord nodig). */
+    public Engagement forceEngagement(UUID groom, UUID bride) throws FamilyException {
+        if (groom.equals(bride)) {
+            throw new FamilyException("marriage-self");
+        }
+        if (byMember.get(groom) == null || byMember.get(bride) == null) {
+            throw new FamilyException("engage-no-family");
+        }
+        if (engagements.containsKey(groom) || engagements.containsKey(bride)) {
+            throw new FamilyException("engage-already-engaged");
+        }
+        Engagement engagement = new Engagement(groom, bride);
+        loadEngagement(engagement);
+        return engagement;
+    }
+
+    /**
+     * Alle nep-spelers weghalen. Een familie met een nep-hoofd gaat naar een echt lid, of wordt opgeheven als er geen
+     * echte leden zijn. @return aantal opgeheven families
+     */
+    public int clearFakes() {
+        int disbanded = 0;
+        for (UUID fake : new ArrayList<>(fakes)) {
+            Family family = byMember.get(fake);
+            if (family != null && isRegistered(family)) {
+                if (family.isOwner(fake)) {
+                    UUID real = null;
+                    for (UUID member : family.getMembers().keySet()) {
+                        if (!fakes.contains(member)) {
+                            real = member;
+                            break;
+                        }
+                    }
+                    if (real == null) {
+                        disband(family);
+                        disbanded++;
+                    } else {
+                        family.putRank(real, null);
+                        family.setOwner(real);
+                        family.removeMember(fake);
+                    }
+                } else {
+                    family.removeMember(fake);
+                }
+            }
+            byMember.remove(fake);
+            Engagement e = engagements.get(fake);
+            if (e != null) {
+                engagements.remove(e.groom);
+                engagements.remove(e.bride);
+            }
+            invites.remove(fake);
+            genealogy.forget(fake);
+            fakes.remove(fake);
+        }
+        return disbanded;
+    }
+
     public boolean isFull(Family family) {
         return maxMembers > 0 && family.getMembers().size() >= maxMembers;
     }
