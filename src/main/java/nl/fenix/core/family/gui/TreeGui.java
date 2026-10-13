@@ -30,7 +30,6 @@ public final class TreeGui extends Gui {
 
     /** Een plek in een rij: een lid, een hartje tussen partners, of leeg. */
     private record Cell(UUID member, UUID partnerA, UUID partnerB) {
-        static final Cell GAP = new Cell(null, null, null);
 
         static Cell of(UUID member) {
             return new Cell(member, null, null);
@@ -62,14 +61,14 @@ public final class TreeGui extends Gui {
         for (int r = 0; r < ROWS && top + r < generations.size(); r++) {
             int gen = top + r;
             List<Cell> row = generations.get(gen);
-            int members = (int) row.stream().filter(c -> c.member() != null).count();
+            int members = (int) row.stream().filter(c -> c != null && c.member() != null).count();
             char color = GENERATION_COLORS[gen % GENERATION_COLORS.length];
             set(r * 9, GuiItems.item(GENERATION_PANES[gen % GENERATION_PANES.length],
                     text("tree-generation", "&%color%Generatie %gen%").replace("%color%", String.valueOf(color))
                             .replace("%gen%", String.valueOf(gen + 1)),
                     List.of(text("tree-generation-lore", "&7%count% lid/leden").replace("%count%", String.valueOf(members)))));
-            // midden uitlijnen als de rij in het scherm past
-            int pad = row.size() <= COLUMNS ? (COLUMNS - row.size()) / 2 : -left;
+            // alle rijen dezelfde verschuiving, zodat kinderen onder hun ouders blijven staan
+            int pad = widest <= COLUMNS ? (COLUMNS - widest) / 2 : -left;
             for (int i = 0; i < row.size(); i++) {
                 int column = pad + i;
                 if (column < 0 || column >= COLUMNS) {
@@ -77,6 +76,9 @@ public final class TreeGui extends Gui {
                 }
                 int slot = r * 9 + 1 + column;
                 Cell cell = row.get(i);
+                if (cell == null) {
+                    continue;
+                }
                 if (cell.member() != null) {
                     UUID member = cell.member();
                     set(slot, GuiItems.head(member, service.rankColor(family.getRank(member)) + service.nameOf(member),
@@ -155,41 +157,58 @@ public final class TreeGui extends Gui {
                 }
                 units.add(unit);
             }
-            units.sort(Comparator.comparingInt((List<UUID> u) -> parentPosition(u, tree, position))
+            // gewenste kolom = midden boven de ouders (bij twee ouders: het hartje ertussen)
+            Map<List<UUID>, Double> anchor = new HashMap<>();
+            for (List<UUID> unit : units) {
+                anchor.put(unit, parentAnchor(unit, tree, position));
+            }
+            units.sort(Comparator.comparingDouble((List<UUID> u) -> anchor.get(u))
                     .thenComparing(u -> siblingKey(service, tree, u.get(0)))
                     .thenComparingInt(u -> family.getRank(u.get(0)).ordinal())
                     .thenComparing(u -> service.nameOf(u.get(0)).toLowerCase()));
 
             List<Cell> row = new ArrayList<>();
+            int cursor = 0;
             for (List<UUID> unit : units) {
-                if (!row.isEmpty()) {
-                    row.add(Cell.GAP);
+                int width = unit.size() == 2 ? 3 : 1;
+                double wanted = anchor.get(unit);
+                int start = wanted == Double.MAX_VALUE ? cursor : (int) Math.round(wanted - (width - 1) / 2.0);
+                start = Math.max(start, cursor);
+                while (row.size() < start + width) {
+                    row.add(null);
                 }
-                position.put(unit.get(0), row.size());
-                row.add(Cell.of(unit.get(0)));
+                row.set(start, Cell.of(unit.get(0)));
+                position.put(unit.get(0), start);
                 if (unit.size() == 2) {
-                    row.add(Cell.heart(unit.get(0), unit.get(1)));
-                    position.put(unit.get(1), row.size());
-                    row.add(Cell.of(unit.get(1)));
+                    row.set(start + 1, Cell.heart(unit.get(0), unit.get(1)));
+                    row.set(start + 2, Cell.of(unit.get(1)));
+                    position.put(unit.get(1), start + 2);
                 }
+                cursor = start + width + 1; // één leeg vakje tussen gezinnen
             }
             rows.add(row);
         }
         return rows;
     }
 
-    /** Plek van de eerste ouder in de rij erboven (zonder ouders in de familie: achteraan). */
-    private static int parentPosition(List<UUID> unit, Genealogy tree, Map<UUID, Integer> position) {
-        int best = Integer.MAX_VALUE;
+    /** Gemiddelde kolom van de ouders (in de rijen erboven) van dit gezin; zonder ouders: achteraan. */
+    private static double parentAnchor(List<UUID> unit, Genealogy tree, Map<UUID, Integer> position) {
+        // eerst de ouders van het eerste lid (het eigen kind), anders die van de partner
         for (UUID member : unit) {
+            double sum = 0;
+            int count = 0;
             for (UUID parent : tree.parentsOf(member)) {
                 Integer pos = position.get(parent);
                 if (pos != null) {
-                    best = Math.min(best, pos);
+                    sum += pos;
+                    count++;
                 }
             }
+            if (count > 0) {
+                return sum / count;
+            }
         }
-        return best;
+        return Double.MAX_VALUE;
     }
 
     /** Broers/zussen bij elkaar: sorteren op de kleinste naam van de groep. */

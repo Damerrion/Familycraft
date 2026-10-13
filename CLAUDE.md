@@ -65,8 +65,9 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - Ontkoppelen kan ook met iemand in een andere familie (relaties horen bij de speler): "Ontkoppelen" in het lid-menu
   toont alle relaties (`Genealogy.relativesOf`), `/family tree unlink <lid> <speler>` (hoofd), en
   `/family tree unlink <speler>` = je eigen relatie verbreken (binnen dezelfde familie alleen via het hoofd).
-- TreeGui: rij per generatie met gekleurde markering in kolom 0, koppels met roze ❤-ruit ertussen, gesorteerd op de
-  plek van de ouders, naamkleur per rang (`gui.rank-colors`), scrollen omhoog/omlaag en links/rechts.
+- TreeGui: rij per generatie met gekleurde markering in kolom 0, koppels met roze ❤-ruit ertussen, naamkleur per rang
+  (`gui.rank-colors`), scrollen omhoog/omlaag en links/rechts. Kolommen worden voor de hele boom berekend: elk gezin
+  komt onder het midden van zijn ouders (bij twee ouders onder het ❤), alle rijen krijgen dezelfde verschuiving.
 - Stamboom (`Genealogy`): ouder/kind (max 2 ouders, geen lussen), partner (1), broer/zus; per speler opgeslagen
   (`people:` in families.yml), alleen leden van dezelfde familie koppelen.
 - Huwelijk (gebruiker, 2026-10-13): `/enlope <speler>` = verloving (ander klikt [Ja]); trouwmenu (`WeddingGui`,
