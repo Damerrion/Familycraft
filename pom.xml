@@ -4,23 +4,26 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.familycraft</groupId>
-    <artifactId>FamilyCraft</artifactId>
-    <version>1.1.0</version>
+    <groupId>nl.fenix</groupId>
+    <artifactId>fenixcore</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>FamilyCraft</name>
-    <description>Family system addon for KingdomCraft</description>
+    <name>FenixCore</name>
+    <description>FenixKingdom-addon voor KingdomCraft: wands (ex KingdomWandsAddon) en families (ex FamilyCraft)</description>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <repositories>
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>JorisG</id>
+            <url>https://repo.jorisg.com/releases</url>
         </repository>
         <repository>
             <id>jitpack.io</id>
@@ -30,24 +33,39 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.13.2-R0.1-SNAPSHOT</version>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Kern-API (User, Kingdom, Rank, Relation, placeholders, chat-events): com.gufli.kingdomcraft.api.*
+             De gebruikte klassen zijn gelijk in 7.1.1 en 7.1.6 (de server draait 7.1.6),
+             geverifieerd tegen de broncode op github.com/guflimc/KingdomCraft (tags v7.1.1 en v7.1.6, map api/). -->
+        <dependency>
+            <groupId>com.gufli.kingdomcraft.starter</groupId>
+            <artifactId>api</artifactId>
+            <version>7.1.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- KingdomCraft PREMIUM API (alleen extra modules: regions, events, power, ...) -->
+        <dependency>
+            <groupId>com.gufli.kingdomcraft.premium</groupId>
+            <artifactId>api</artifactId>
+            <version>7.1.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Vault (optioneel): eenmalige prijs voor /family create -->
         <dependency>
             <groupId>com.github.MilkBowl</groupId>
             <artifactId>VaultAPI</artifactId>
             <version>1.7</version>
             <scope>provided</scope>
-        </dependency>
-        <!-- Put KingdomCraftStarter-x.y.z-all.jar in ./libs/ (it is not redistributed in this repo) -->
-        <dependency>
-            <groupId>com.gufli</groupId>
-            <artifactId>kingdomcraft</artifactId>
-            <version>7.1.6</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/KingdomCraftStarter-7.1.6-all.jar</systemPath>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bukkit</groupId>
+                    <artifactId>bukkit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -58,12 +76,27 @@
     </dependencies>
 
     <build>
-        <finalName>FamilyCraft-${project.version}</finalName>
+        <finalName>FenixCore-${project.version}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
             </resource>
         </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${java.version}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+        </plugins>
     </build>
 </project>

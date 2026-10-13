@@ -1,0 +1,116 @@
+# FenixCore - family-module (voorheen FamilyCraft)
+
+settings:
+  # Maximum length of the family name (no digits allowed)
+  max-name-length: 30
+  # Maximum length of the family tag (no digits allowed)
+  max-tag-length: 3
+  # Seconds an invite stays valid
+  invite-expire-seconds: 60
+  # Seconds you have to confirm /family disband
+  disband-confirm-seconds: 15
+  # Maximum members per family (0 = unlimited)
+  max-members: 0
+
+economy:
+  # One-time price for creating a family (needs Vault + an economy plugin).
+  # 0 = free. Players with family.admin never pay.
+  create-cost: 0.0
+
+# Placeholders for the KingdomCraft chat.yml / scoreboards (use them like {family_prefix}):
+#   {family_tag}     -> RD
+#   {family_prefix}  -> the `prefix-format` below with the tag filled in, completely empty without family
+#                       (brackets and the trailing space included, so use '{kingdom_prefix} {family_prefix}{username}')
+#   {family_name}    -> Rheanos Decendants
+placeholders:
+  prefix-format: '&7[&f%tag%&7] '
+
+# Hovering over {family_prefix} in the KingdomCraft chat shows these lines, clicking it runs click-command.
+# Only works for {family_prefix} (not {family_tag}). Variables: %name% %tag% %kingdom% %date% %owner% %members%
+chat-hover:
+  enabled: true
+  lines:
+    - '&5&m                              '
+    - '&6Volledige naam: &7%name%'
+    - '&6Afgekorte naam: &7%tag%'
+    - '&6Familie afstamming: &7%kingdom%'
+    - '&6Datum opgericht: &7%date%'
+    - '&6Eigenaar: &7%owner% &8(&7%members% leden&8)'
+    - '&5&m                              '
+  # empty = nothing happens on click
+  click-command: '/family members %tag%'
+
+# KingdomCraft sets the display name to '<kingdom prefix> <name><kingdom suffix>' itself, so chat plugins
+# that show the display name (EssentialsChat, ...) never see the family. FamilyCraft rebuilds it with this
+# format. Any KingdomCraft placeholder works; %player% is the player name. Disable if you do not want this.
+display-name:
+  enabled: true
+  format: '{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}'
+
+messages:
+  prefix: '&8[&6Familie&8] &7'
+  no-permission: '&cJe hebt hier geen toestemming voor.'
+  players-only: '&cDit commando kan alleen door spelers gebruikt worden.'
+  unknown-subcommand: '&cOnbekend commando. Gebruik &f/family help&c.'
+  not-in-family: '&cJe zit niet in een familie.'
+  already-in-family: '&cJe zit al in een familie.'
+  not-owner: '&cAlleen de familie eigenaar kan dit doen.'
+  owner-cannot-leave: '&cAls eigenaar kun je niet vertrekken. Gebruik &f/family disband&c.'
+  usage-create: '&cGebruik: &f/family create <familie_naam> <familieafkorting>'
+  name-invalid: '&cDe familie naam mag geen cijfers bevatten, maximaal %max% tekens lang zijn en alleen letters bevatten (gebruik _ voor een spatie).'
+  tag-invalid: '&cDe familie tag mag geen cijfers bevatten en maximaal %max% tekens lang zijn.'
+  name-taken: '&cEr bestaat al een familie met die naam.'
+  tag-taken: '&cEr bestaat al een familie met die tag.'
+  not-enough-money: '&cEen familie starten kost &f%cost%&c, dat heb je niet.'
+  economy-unavailable: '&cEen familie starten kost geld maar er is geen economie plugin beschikbaar.'
+  created: '&aJe familie &f%name% &7[%tag%] &ais aangemaakt!'
+  usage-invite: '&cGebruik: &f/family invite <speler>'
+  usage-kick: '&cGebruik: &f/family kick <speler>'
+  player-not-found: '&cSpeler &f%player% &cis niet online.'
+  invite-self: '&cJe kunt jezelf niet uitnodigen.'
+  invite-target-in-family: '&c%player% zit al in een familie.'
+  invite-already-sent: '&c%player% heeft al een uitnodiging van jou.'
+  family-full: '&cDeze familie zit vol.'
+  invite-sent: '&aUitnodiging verstuurd naar &f%player%&a.'
+  invite-received: '&f%owner% &anodigt je uit voor familie &f%name% &7[%tag%]&a. Gebruik &f/family accept &aof &f/family cancel&a.'
+  no-invite: '&cJe hebt geen openstaande uitnodiging.'
+  nothing-to-cancel: '&cEr is niets om te annuleren (geen uitnodiging, geen openstaande disband).'
+  invite-expired: '&cDe uitnodiging is verlopen.'
+  invite-declined: '&7Je hebt de uitnodiging geweigerd.'
+  invite-declined-owner: '&7%player% heeft je uitnodiging geweigerd.'
+  invites-cancelled: '&7Je openstaande uitnodigingen zijn ingetrokken.'
+  joined: '&aJe bent lid geworden van familie &f%name% &7[%tag%]&a.'
+  joined-broadcast: '&f%player% &aheeft zich bij de familie aangesloten.'
+  left: '&7Je hebt familie &f%name% &7verlaten.'
+  left-broadcast: '&f%player% &7heeft de familie verlaten.'
+  kick-not-member: '&c%player% zit niet in jouw familie.'
+  kick-self: '&cJe kunt jezelf niet kicken. Gebruik &f/family disband&c.'
+  kicked: '&f%player% &7is uit de familie gezet.'
+  kicked-target: '&cJe bent uit familie &f%name% &cgezet.'
+  disband-confirm: '&eWeet je het zeker? Gebruik binnen %seconds% seconden nogmaals &f/family disband &eom je familie te verwijderen, of &f/family cancel&e.'
+  disband-cancelled: '&7Het verwijderen van je familie is geannuleerd.'
+  disbanded: '&7Familie &f%name% &7is opgeheven.'
+  disbanded-target: '&cJe familie &f%name% &cis opgeheven.'
+  usage-check: '&cGebruik: &f/family check <familie_tag>'
+  family-not-found: '&cEr is geen familie met tag &f%tag%&c.'
+  members-header: '&6Leden van &f%name% &7[%tag%] &8(%count%)'
+  members-entry: '&8- &f%player% %role%'
+  role-owner: '&6(eigenaar)'
+  role-member: ''
+  info-border: '&5&m--------------------------------'
+  info-name: '&6Volledige naam: &7%name%'
+  info-tag: '&6Afgekorte naam: &7%tag%'
+  info-kingdom: '&6Familie afstamming: &7%kingdom%'
+  info-created: '&6Datum opgericht: &7%date%'
+  no-kingdom: 'Geen'
+  date-format: 'dd/MM/yyyy HH:mm:ss'
+  help:
+    - '&6/family create <naam> <afkorting> &7- Maak een familie'
+    - '&6/family invite <speler> &7- Nodig een speler uit'
+    - '&6/family accept &7- Accepteer een uitnodiging'
+    - '&6/family cancel &7- Weiger/annuleer een uitnodiging of verwijdering'
+    - '&6/family kick <speler> &7- Zet een lid uit je familie'
+    - '&6/family leave &7- Verlaat je familie'
+    - '&6/family disband &7- Verwijder je familie'
+    - '&6/family check <tag> &7- Bekijk info over een familie'
+    - '&6/family members [tag] &7- Bekijk de leden'

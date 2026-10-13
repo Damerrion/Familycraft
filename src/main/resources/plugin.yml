@@ -1,22 +1,90 @@
-name: FamilyCraft
-main: com.familycraft.FamilyCraftPlugin
+name: FenixCore
 version: ${project.version}
-description: Family system (families with a name and tag prefix) for KingdomCraft
-api-version: 1.13
-depend: [KingdomCraft]
-softdepend: [Vault]
+main: nl.fenix.core.FenixCore
+api-version: "1.21"
+description: FenixKingdom-addon voor KingdomCraft (wands + families)
+softdepend: [KingdomCraft, LuckPerms, KingdomWands, ProtocolLib, Vault, KingdomWandsAddon, FamilyCraft]
 commands:
+  kwa:
+    description: Wands hoofdcommando (zoals /kw)
+    usage: /kwa [get|bind|unbind|spells|effect|create|info|help|dev|check|reload]
   family:
-    description: Manage your family
+    description: Je familie beheren
     usage: /family <accept|cancel|create|disband|check|invite|kick|leave|members|info>
     aliases: [familie, fam]
+# Alles staat standaard aan voor operators. Niet-ops krijgen het via LuckPerms.
+# De permissies zijn dezelfde als in de losse plugins KingdomWandsAddon (kwa.*) en FamilyCraft (family.*).
 permissions:
   family.use:
-    description: Use /family
+    description: /family gebruiken
     default: true
   family.create:
-    description: Create a family (give this to players who bought one)
+    description: Een familie maken (geef dit aan spelers die er een gekocht hebben)
     default: op
   family.admin:
-    description: Disband / kick in any family and bypass the creation cost
+    description: Disband / kick in elke familie en gratis familie maken
+    default: op
+  # ---- wands (zelfde opzet als KingdomWands Premium: kingdomwands.* -> kwa.*)
+  kwa.*:
+    description: Alle KingdomWandsAddon-permissies in 1 (zoals kw.*)
+    default: op
+    children:
+      kwa.use: true
+      kwa.use.tygron: true
+      kwa.wand.tygron: true
+      kwa.getwand: true
+      kwa.bind: true
+      kwa.unbind: true
+      kwa.spells: true
+      kwa.effect: true
+      kwa.create: true
+      kwa.admin: true
+      kwa.dev: true
+      kwa.spells.*: true
+  kwa.use:
+    description: Alle wands gebruiken (zoals kingdomwands.use). Per wand kan ook met kwa.use.<wand>.
+    default: op
+    children:
+      kwa.use.tygron: true
+  kwa.use.tygron:
+    description: De Tygron Deathwhistle gebruiken (geef dit aan de Stamleider van Tygron)
+    default: op
+  kwa.wand.tygron:
+    description: Toestemming om de Tygron Deathwhistle te krijgen (/kwa get tygron [speler]); andere wands krijgen automatisch kwa.wand.<wand>
+    default: op
+  kwa.getwand:
+    description: Het wand-menu openen met /kwa get (een wand pakken vraagt ook kwa.wand.<wand>)
+    default: op
+  kwa.bind:
+    description: Toestemming tot /bind (en /kwa bind)
+    default: op
+  kwa.unbind:
+    description: Toestemming tot /unbind (en /kwa unbind)
+    default: op
+  kwa.spells:
+    description: Toestemming tot /kwa spells (list, spell, spelllist)
+    default: op
+  kwa.effect:
+    description: Select-effect van je wand veranderen met /kwa effect
+    default: op
+  kwa.create:
+    description: Een wand maken van het item in je hand met /kwa create
+    default: op
+  kwa.admin:
+    description: /kwa reload en /kwa check
+    default: op
+  kwa.dev:
+    description: /kwa dev - dev mode om alleen te testen (geen cooldowns, raakt ook jezelf/mobs/bondgenoten)
+    default: op
+  kwa.spells.*:
+    description: Alle spells
+    default: op
+    children:
+      kwa.spells.Scream: true
+      kwa.spells.Mark: true
+  kwa.spells.Scream:
+    description: Mag de spell Scream binden en casten
+    default: op
+  kwa.spells.Mark:
+    description: Mag de spell Mark binden en casten
     default: op
