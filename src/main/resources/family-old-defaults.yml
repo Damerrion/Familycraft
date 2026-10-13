@@ -50,3 +50,18 @@ v3:
     unlink-lore: '&7Haal een relatie van %player% weg'
   messages:
     usage-tree: '&cGebruik: &f/family tree link <parent|child|partner|sibling> <a> <b>&c, &f/family tree unlink <a> <b>&c of &f/family tree [tag]'
+v4:
+  gui:
+    wedding-option-new-line-lore:
+    - '&7%a% en %b% gaan samen verder in een nieuwe lijn.'
+    - '&7Het nieuwe hoofd kiest een nieuwe naam en tag.'
+  messages:
+    wedding-outcome-new-line: '&7&f%lines% &7gaan samen verder als een nieuwe lijn; kies een naam.'
+    dev-help:
+    - '&6Dev mode (alleen om te testen):'
+    - '&6/family dev fake <naam> [tag] &7- nep-lid in je familie (of familie met tag)'
+    - '&6/family dev fakefamily <hoofd> <naam> <tag> &7- nep-familie met nep-hoofd'
+    - '&6/family dev enlope <a> <b> &7- direct verloven, opent het trouwmenu'
+    - '&6/family dev list &7/ &6clear &7- nep-spelers bekijken / alles opruimen'
+    - '&7In dev mode mag je alles wat een hoofd/admin mag: editor van elke familie,'
+    - '&7rangen, stamboom, rollen en keuze in het trouwmenu, trouwerij starten.'

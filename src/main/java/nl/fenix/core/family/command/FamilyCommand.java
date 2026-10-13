@@ -508,6 +508,11 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         }
         switch (sub) {
             case "fake" -> {
+                if (args.length >= 2 && (args[1].equalsIgnoreCase("enlope") || args[1].equalsIgnoreCase("elope"))) {
+                    // /family dev fake enlope <a> <b> = /family dev enlope <a> <b>
+                    dev(p, java.util.Arrays.copyOfRange(args, 1, args.length));
+                    return;
+                }
                 if (args.length < 2) {
                     throw new FamilyException("usage-dev");
                 }

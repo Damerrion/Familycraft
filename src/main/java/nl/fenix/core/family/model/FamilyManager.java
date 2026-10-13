@@ -398,7 +398,7 @@ public class FamilyManager {
         JOIN_PERSON,
         /** andersom: alleen de partner gaat over naar lijn A, beide lijnen gaan verder */
         JOIN_PARTNER,
-        /** lijn A en lijn B gaan samen verder als nieuwe lijn C (nieuwe naam; alleen hoofd/Opvolger van A) */
+        /** het bruidspaar begint samen een nieuwe lijn C (nieuwe naam kiezen); A en B gaan verder */
         NEW_LINE,
         /** het bruidspaar vormt een aftakking "A-B"; A en B gaan verder */
         BRANCH
@@ -619,7 +619,7 @@ public class FamilyManager {
 
     /** Mag de kiezer deze optie kiezen? Hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A. */
     public boolean isAllowed(Engagement e, MarriageOption option) {
-        if (option == MarriageOption.ABSORB_LINE || option == MarriageOption.NEW_LINE) {
+        if (option == MarriageOption.ABSORB_LINE) {
             return isHeir(e.getChooser());
         }
         if (option == MarriageOption.ABSORB_PARTNER_LINE) {
@@ -738,23 +738,27 @@ public class FamilyManager {
                         newHead == null ? Map.of() : Map.of(lineA, newHead));
             }
             case NEW_LINE: {
-                Family groomLine = byMember.get(e.groom);
-                Family brideLine = byMember.get(e.bride);
-                Family c = newLine(groomLine, brideLine, e.groom, e.bride);
-                return new Wedding(MarriageType.CHOICE, option, c, List.of(groomLine, brideLine), Map.of());
+                // alleen het bruidspaar, zoals een aftakking, maar het hoofd kiest meteen een eigen naam
+                Marriage m = marry(e.groom, e.bride);
+                m.branch.setNeedsRename(true);
+                return new Wedding(MarriageType.CHOICE, option, m.branch, List.of(), heads(m));
             }
             default: {
                 Marriage m = marry(e.groom, e.bride);
-                Map<Family, UUID> heads = new java.util.HashMap<>();
-                if (m.newGroomFamilyHead != null) {
-                    heads.put(m.groomFamily, m.newGroomFamilyHead);
-                }
-                if (m.newBrideFamilyHead != null) {
-                    heads.put(m.brideFamily, m.newBrideFamilyHead);
-                }
-                return new Wedding(MarriageType.CHOICE, option, m.branch, List.of(), heads);
+                return new Wedding(MarriageType.CHOICE, option, m.branch, List.of(), heads(m));
             }
         }
+    }
+
+    private static Map<Family, UUID> heads(Marriage m) {
+        Map<Family, UUID> heads = new java.util.HashMap<>();
+        if (m.newGroomFamilyHead != null) {
+            heads.put(m.groomFamily, m.newGroomFamilyHead);
+        }
+        if (m.newBrideFamilyHead != null) {
+            heads.put(m.brideFamily, m.newBrideFamilyHead);
+        }
+        return heads;
     }
 
     /** Rang van de aangetrouwde partner: Gemaal bij een hoofd, Gemaal van de Erfgenaam bij een erfgenaam. */
@@ -826,32 +830,6 @@ public class FamilyManager {
         }
         removeFamily(lineA);
         lineB.getLineage().add(lineA.getName());
-    }
-
-    /**
-     * Lijn A en lijn B gaan samen verder als nieuwe lijn C. Bruidegom = hoofd, bruid = Gemaal, de rest Kind van het
-     * Huis. De nieuwe lijn krijgt eerst de samengestelde naam en moet een eigen naam kiezen.
-     */
-    private Family newLine(Family groomLine, Family brideLine, UUID groom, UUID bride) {
-        MergedName merged = merge(groomLine.getName(), brideLine.getName());
-        Family c = new Family(merged.name(), merged.tag(), groom, groomLine.getMembers().get(groom), Instant.now());
-        for (Family line : List.of(groomLine, brideLine)) {
-            for (UUID member : new ArrayList<>(line.getMembers().keySet())) {
-                genealogy.addOrigin(member, line.getName());
-                if (!member.equals(groom)) {
-                    c.addMember(member, line.getMembers().get(member), member.equals(bride) ? FamilyRank.CONSORT : FamilyRank.CHILD);
-                }
-            }
-            c.getLineage().add(line.getName());
-            removeFamily(line);
-        }
-        c.setKingdomName(groomLine.getKingdomName());
-        c.setCrest(groomLine.getCrest());
-        String tag = getFamilyByTag(merged.tag()) != null ? uniqueTag(merged.tag()) : merged.tag();
-        c.setNameAndTag(merged.name(), tag);
-        c.setNeedsRename(true);
-        register(c);
-        return c;
     }
 
     /** Familie weghalen zonder de leden los te koppelen (die zijn al verhuisd). */

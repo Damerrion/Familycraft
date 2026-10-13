@@ -289,16 +289,16 @@ public class FamilyTreeTest {
 
     @Test
     public void newLineNeedsAName() throws Exception {
-        FamilyManager.Wedding w = wed(headA, daughterB, true, FamilyManager.MarriageOption.NEW_LINE);
+        // een gewoon lid mag ook samen een nieuwe lijn beginnen: alleen het paar, A en B gaan verder
+        FamilyManager.Wedding w = wed(sonA, daughterB, true, FamilyManager.MarriageOption.NEW_LINE);
         Family c = w.getFamily();
         assertTrue(c.needsRename());
-        assertNull(manager.getFamilyByTag("DL"));
-        assertNull(manager.getFamilyByTag("AL"));
-        assertTrue(c.isOwner(headA));
+        assertNotNull(manager.getFamilyByTag("DL"));
+        assertNotNull(manager.getFamilyByTag("AL"));
+        assertTrue(c.isOwner(sonA));
         assertEquals(FamilyRank.CONSORT, c.getRank(daughterB));
-        assertEquals(FamilyRank.CHILD, c.getRank(headB));
-        assertEquals(5, c.getMembers().size()); // 3 van A + 2 van B
-        manager.rename(c, headA, false, "Hoge_Lijn", "HL");
+        assertEquals(2, c.getMembers().size());
+        manager.rename(c, sonA, false, "Hoge_Lijn", "HL");
         assertSame(c, manager.getFamilyByTag("HL"));
     }
 

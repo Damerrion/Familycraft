@@ -299,6 +299,14 @@ public final class FamilyService {
     public void engage(Player from, UUID to) throws FamilyException {
         manager.requestEngagement(from.getUniqueId(), to);
         send(from, "engage-sent", "%player%", nameOf(to));
+        if (manager.isFake(to) && isDev(from)) {
+            // dev mode: een nep-speler zegt meteen ja
+            FamilyManager.Engagement e = manager.acceptEngagement(to);
+            save();
+            send(from, "dev-engaged", "%groom%", nameOf(e.getGroom()), "%bride%", nameOf(e.getBride()));
+            openWedding(from, e);
+            return;
+        }
         Player target = Bukkit.getPlayer(to);
         if (target != null) {
             sendWithButtons(target, "engage-request", new String[]{"%player%", from.getName()},

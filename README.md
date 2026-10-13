@@ -132,7 +132,7 @@ Wat er gebeurt:
 | Hoofd + hoofd | De families **fuseren**: `Dokker Lijn` + `Adamantie Lijn` -> **`Dokker-Adamantie Lijn` [DAL]**. Bruidegom blijft hoofd, bruid wordt Gemaal; Opvolger/Reserve-erfgenaam van de bruid worden Kind van het Huis |
 | Hoofd + Opvolger | De **Opvolger gaat over** naar de familie van het hoofd (als Gemaal); de Reserve-erfgenaam wordt de nieuwe Opvolger |
 | Zelfde familie | Ze worden partners, verder verandert er niets |
-| Anders: A kiest | **Lijn A gaat op in lijn B** of andersom **lijn B in lijn A** · **alleen A gaat over naar lijn B** of andersom **alleen de partner naar lijn A** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (nieuwe naam kiezen) · **aftakking** (`A-B`, alleen het paar). Een hele lijn meenemen kan alleen als het hoofd of de Opvolger van die lijn trouwt |
+| Anders: A kiest | **Lijn A gaat op in lijn B** of andersom **lijn B in lijn A** · **alleen A gaat over naar lijn B** of andersom **alleen de partner naar lijn A** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (alleen het bruidspaar, nieuwe naam kiezen; A en B gaan verder) · **aftakking** (`A-B`, alleen het paar). Een hele lijn meenemen kan alleen als het hoofd of de Opvolger van die lijn trouwt |
 
 De aangetrouwde partner wordt Gemaal (bij een hoofd), Gemaal van de Erfgenaam (bij een Opvolger/Reserve-erfgenaam)
 of Kind van het Huis. Gaat een hoofd weg, dan neemt de Opvolger (anders Reserve-erfgenaam) het over.
@@ -152,7 +152,7 @@ trouwmenu, trouwerij starten), en kun je alles alleen testen met nep-spelers:
 |---|---|
 | `/family dev fake <naam> [tag]` | Nep-lid in je eigen familie (of de familie met die tag) |
 | `/family dev fakefamily <hoofd> <naam> <tag>` | Nep-familie met een nep-hoofd |
-| `/family dev enlope <a> <b>` | Direct verloven (ook nep-spelers) en het trouwmenu openen |
+| `/family dev enlope <a> <b>` (of `fake enlope`) | Direct verloven (ook nep-spelers) en het trouwmenu openen. `/enlope <nep-speler>` in dev mode: de nep-speler zegt meteen ja |
 | `/family dev list` / `clear` | Nep-spelers bekijken / alles opruimen (families met alleen nep-leden worden opgeheven) |
 
 Nep-spelers worden bewaard in families.yml (`fakes:`) tot `/family dev clear`.

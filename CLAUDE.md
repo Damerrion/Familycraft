@@ -72,8 +72,8 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
   familie van de bruid** start. Uitkomst (`FamilyManager.typeOf`): hoofd+hoofd = automatisch fuseren tot "A-B"
   (bruid Gemaal, Opvolger/Reserve van B -> Kind); hoofd+Opvolger = Opvolger gaat over (Gemaal), Reserve schuift door;
   zelfde familie = alleen partners; anders kiest A uit ABSORB_LINE / ABSORB_PARTNER_LINE (andersom: B in A) /
-  JOIN_PERSON / JOIN_PARTNER (andersom: partner naar A) / NEW_LINE (needs-rename) / BRANCH ("A-B" aftakking, alleen
-  het paar). ABSORB_LINE en NEW_LINE alleen als A hoofd/Opvolger van lijn A is; ABSORB_PARTNER_LINE alleen als de
+  JOIN_PERSON / JOIN_PARTNER (andersom: partner naar A) / NEW_LINE (alleen het paar, needs-rename; A en B gaan verder) /
+  BRANCH ("A-B" aftakking, alleen het paar). ABSORB_LINE alleen als A hoofd/Opvolger van lijn A is; ABSORB_PARTNER_LINE alleen als de
   partner hoofd/Opvolger van lijn B is.
   Afkomst per speler (`Genealogy.originsOf`, `origins:` in people) wordt bij elke overgang aangevuld en getoond
   ("Afkomst: A → B"). Verlovingen worden bewaard (`engagements:` in families.yml). Naam samenvoegen: gedeeld
