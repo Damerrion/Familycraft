@@ -186,6 +186,14 @@ gui:
   wedding-option-absorb-line-lore:
     - '&7Iedereen van %a% wordt lid van %b%.'
     - '&7%a% bestaat daarna niet meer; de afkomst blijft zichtbaar.'
+  wedding-option-absorb-partner-line: '&6Lijn %b% gaat op in %a%'
+  wedding-option-absorb-partner-line-lore:
+    - '&7Andersom: iedereen van %b% wordt lid van %a%.'
+    - '&7%b% bestaat daarna niet meer; de afkomst blijft zichtbaar.'
+  wedding-option-join-partner: '&6%partner% gaat over naar %a%'
+  wedding-option-join-partner-lore:
+    - '&7Andersom: alleen %partner% gaat naar %a%.'
+    - '&7Beide lijnen gaan verder.'
   wedding-option-join-person: '&6%player% gaat over naar %b%'
   wedding-option-join-person-lore:
     - '&7Alleen %player% gaat naar %b%.'
@@ -330,6 +338,8 @@ messages:
   wedding-outcome-heads: '&7De lijnen &f%lines% &7zijn gefuseerd tot &f%name% &7[%tag%].'
   wedding-outcome-head-successor: '&7De erfgenaam is overgegaan naar &f%name%&7.'
   wedding-outcome-absorb-line: '&7Een hele lijn is opgegaan in &f%name%&7.'
+  wedding-outcome-absorb-partner-line: '&7Een hele lijn is opgegaan in &f%name%&7.'
+  wedding-outcome-join-partner: '&7De partner is overgegaan naar &f%name%&7; beide lijnen gaan verder.'
   wedding-outcome-join-person: '&7De partner is overgegaan naar &f%name%&7; beide lijnen gaan verder.'
   wedding-outcome-new-line: '&7&f%lines% &7gaan samen verder als een nieuwe lijn; kies een naam.'
   wedding-outcome-branch: '&7Ze vormen de aftakking &f%name% &7[%tag%].'

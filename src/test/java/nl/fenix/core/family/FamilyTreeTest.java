@@ -249,6 +249,35 @@ public class FamilyTreeTest {
     }
 
     @Test
+    public void absorbPartnerLineTheOtherWayAround() throws Exception {
+        // sonA kiest, maar daughterB is geen hoofd/Opvolger: lijn B meenemen mag niet
+        manager.requestEngagement(sonA, daughterB);
+        FamilyManager.Engagement e = manager.acceptEngagement(daughterB);
+        assertKey("wedding-option-not-allowed", () -> manager.chooseOption(sonA, false, FamilyManager.MarriageOption.ABSORB_PARTNER_LINE));
+        manager.cancelEngagement(sonA);
+        // met het hoofd van B wel: B gaat op in A
+        FamilyManager.Wedding w = wed(sonA, headB, true, FamilyManager.MarriageOption.ABSORB_PARTNER_LINE);
+        assertSame(a, w.getFamily());
+        assertNull(manager.getFamilyByTag("AL"));
+        assertSame(a, manager.getFamily(daughterB));
+        assertSame(a, manager.getFamily(headB));
+        assertEquals(java.util.List.of("Adamantie Lijn"), manager.getGenealogy().originsOf(headB));
+        assertTrue(a.getLineage().contains("Adamantie Lijn"));
+        assertNotNull(e);
+    }
+
+    @Test
+    public void joinPartnerTheOtherWayAround() throws Exception {
+        // sonA kiest: zijn partner (daughterB) gaat over naar lijn A, beide lijnen gaan verder
+        FamilyManager.Wedding w = wed(sonA, daughterB, true, FamilyManager.MarriageOption.JOIN_PARTNER);
+        assertSame(a, w.getFamily());
+        assertSame(a, manager.getFamily(daughterB));
+        assertNotNull(manager.getFamilyByTag("AL"));
+        // partner van het hoofd van B overzetten kan pas als B een opvolger heeft
+        assertKey("marriage-no-successor", () -> wed(heirA, headB, true, FamilyManager.MarriageOption.JOIN_PARTNER));
+    }
+
+    @Test
     public void joinPersonBothLinesContinue() throws Exception {
         FamilyManager.Wedding w = wed(sonA, headB, true, FamilyManager.MarriageOption.JOIN_PERSON);
         assertSame(b, w.getFamily());

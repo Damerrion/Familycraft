@@ -20,8 +20,9 @@ import java.util.UUID;
  */
 public final class WeddingGui extends Gui {
 
-    private static final Material[] OPTION_ICONS = {Material.HOPPER, Material.ENDER_PEARL, Material.NETHER_STAR,
-            Material.OAK_SAPLING};
+    /** zelfde volgorde als MarriageOption */
+    private static final Material[] OPTION_ICONS = {Material.HOPPER, Material.CAULDRON, Material.ENDER_PEARL,
+            Material.ENDER_EYE, Material.NETHER_STAR, Material.OAK_SAPLING};
 
     private final FamilyManager.Engagement engagement;
 
@@ -46,7 +47,7 @@ public final class WeddingGui extends Gui {
                     List.of(text("wedding-chooser-lore", "&7Klik om te wisselen wie kiest (alleen het bruidspaar)"))),
                     e -> act(e, p -> service.toggleChooser(p, engagement)));
             MarriageOption[] options = MarriageOption.values();
-            int[] slots = {28, 30, 32, 34};
+            int[] slots = {28, 29, 30, 32, 33, 34};
             for (int i = 0; i < options.length; i++) {
                 MarriageOption option = options[i];
                 String key = "wedding-option-" + option.name().toLowerCase().replace('_', '-');
@@ -60,7 +61,8 @@ public final class WeddingGui extends Gui {
                         : allowed ? text("wedding-option-click", "&eKlik om te kiezen (alleen %player%)")
                         .replace("%player%", service.nameOf(engagement.getChooser()))
                         : text("wedding-option-locked", "&cAlleen als %player% hoofd of Opvolger is")
-                        .replace("%player%", service.nameOf(engagement.getChooser())));
+                        .replace("%player%", service.nameOf(option == MarriageOption.ABSORB_PARTNER_LINE
+                                ? engagement.partnerOf(engagement.getChooser()) : engagement.getChooser())));
                 var icon = GuiItems.item(allowed ? OPTION_ICONS[i] : Material.GRAY_DYE,
                         fill(text(key, option.name()), groomFamily, brideFamily), lore);
                 set(slots[i], option == engagement.getOption() ? GuiItems.glow(icon) : icon,
@@ -124,6 +126,7 @@ public final class WeddingGui extends Gui {
         Family b = service.manager().getFamily(engagement.partnerOf(engagement.getChooser()));
         return line.replace("%a%", a == null ? "-" : a.getName()).replace("%b%", b == null ? "-" : b.getName())
                 .replace("%player%", service.nameOf(engagement.getChooser()))
+                .replace("%partner%", service.nameOf(engagement.partnerOf(engagement.getChooser())))
                 .replace("%groomfamily%", groomFamily == null ? "-" : groomFamily.getName())
                 .replace("%bridefamily%", brideFamily == null ? "-" : brideFamily.getName());
     }

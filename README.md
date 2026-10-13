@@ -132,7 +132,7 @@ Wat er gebeurt:
 | Hoofd + hoofd | De families **fuseren**: `Dokker Lijn` + `Adamantie Lijn` -> **`Dokker-Adamantie Lijn` [DAL]**. Bruidegom blijft hoofd, bruid wordt Gemaal; Opvolger/Reserve-erfgenaam van de bruid worden Kind van het Huis |
 | Hoofd + Opvolger | De **Opvolger gaat over** naar de familie van het hoofd (als Gemaal); de Reserve-erfgenaam wordt de nieuwe Opvolger |
 | Zelfde familie | Ze worden partners, verder verandert er niets |
-| Anders: A kiest | **Lijn A gaat op in lijn B** · **alleen A gaat over naar lijn B** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (nieuwe naam kiezen) · **aftakking** (`A-B`, alleen het paar). Hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A |
+| Anders: A kiest | **Lijn A gaat op in lijn B** of andersom **lijn B in lijn A** · **alleen A gaat over naar lijn B** of andersom **alleen de partner naar lijn A** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (nieuwe naam kiezen) · **aftakking** (`A-B`, alleen het paar). Een hele lijn meenemen kan alleen als het hoofd of de Opvolger van die lijn trouwt |
 
 De aangetrouwde partner wordt Gemaal (bij een hoofd), Gemaal van de Erfgenaam (bij een Opvolger/Reserve-erfgenaam)
 of Kind van het Huis. Gaat een hoofd weg, dan neemt de Opvolger (anders Reserve-erfgenaam) het over.

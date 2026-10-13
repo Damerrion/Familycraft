@@ -392,8 +392,12 @@ public class FamilyManager {
     public enum MarriageOption {
         /** lijn A (van de kiezer) gaat op in lijn B (alleen hoofd/Opvolger van A) */
         ABSORB_LINE,
+        /** andersom: lijn B (van de partner) gaat op in lijn A (alleen als de partner hoofd/Opvolger van B is) */
+        ABSORB_PARTNER_LINE,
         /** alleen A gaat over naar lijn B, beide lijnen gaan verder */
         JOIN_PERSON,
+        /** andersom: alleen de partner gaat over naar lijn A, beide lijnen gaan verder */
+        JOIN_PARTNER,
         /** lijn A en lijn B gaan samen verder als nieuwe lijn C (nieuwe naam; alleen hoofd/Opvolger van A) */
         NEW_LINE,
         /** het bruidspaar vormt een aftakking "A-B"; A en B gaan verder */
@@ -616,11 +620,20 @@ public class FamilyManager {
     /** Mag de kiezer deze optie kiezen? Hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A. */
     public boolean isAllowed(Engagement e, MarriageOption option) {
         if (option == MarriageOption.ABSORB_LINE || option == MarriageOption.NEW_LINE) {
-            Family own = byMember.get(e.getChooser());
-            FamilyRank rank = own == null ? null : own.getRank(e.getChooser());
-            return rank == FamilyRank.HEAD || rank == FamilyRank.SUCCESSOR;
+            return isHeir(e.getChooser());
+        }
+        if (option == MarriageOption.ABSORB_PARTNER_LINE) {
+            // een hele lijn meenemen kan alleen via het hoofd of de Opvolger van die lijn
+            return isHeir(e.partnerOf(e.getChooser()));
         }
         return true;
+    }
+
+    /** Hoofd of Opvolger van zijn/haar eigen lijn. */
+    private boolean isHeir(UUID player) {
+        Family own = byMember.get(player);
+        FamilyRank rank = own == null ? null : own.getRank(player);
+        return rank == FamilyRank.HEAD || rank == FamilyRank.SUCCESSOR;
     }
 
     /** Alleen de kiezer (A) kiest de optie. */
@@ -700,6 +713,20 @@ public class FamilyManager {
                 FamilyRank spouseRank = spouseRank(lineB.getRank(b));
                 absorb(lineA, lineB, a, spouseRank);
                 return new Wedding(MarriageType.CHOICE, option, lineB, List.of(lineA), Map.of());
+            }
+            case ABSORB_PARTNER_LINE: {
+                FamilyRank spouseRank = spouseRank(lineA.getRank(a));
+                absorb(lineB, lineA, b, spouseRank);
+                return new Wedding(MarriageType.CHOICE, option, lineA, List.of(lineB), Map.of());
+            }
+            case JOIN_PARTNER: {
+                UUID newHead = lineB.isOwner(b) ? findHeir(lineB, b) : null;
+                if (lineB.isOwner(b) && newHead == null) {
+                    throw new FamilyException("marriage-no-successor");
+                }
+                movePerson(b, lineB, lineA, spouseRank(lineA.getRank(a)));
+                return new Wedding(MarriageType.CHOICE, option, lineA, List.of(),
+                        newHead == null ? Map.of() : Map.of(lineB, newHead));
             }
             case JOIN_PERSON: {
                 UUID newHead = lineA.isOwner(a) ? findHeir(lineA, a) : null;
