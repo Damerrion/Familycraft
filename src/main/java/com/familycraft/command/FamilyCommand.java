@@ -5,6 +5,7 @@ import com.familycraft.economy.VaultEconomy;
 import com.familycraft.model.Family;
 import com.familycraft.model.FamilyException;
 import com.familycraft.model.FamilyManager;
+import com.familycraft.placeholder.DisplayNames;
 import com.familycraft.storage.FamilyStorage;
 import com.gufli.kingdomcraft.api.KingdomCraft;
 import com.gufli.kingdomcraft.api.domain.Kingdom;
@@ -38,17 +39,19 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     private final FamilyManager manager;
     private final FamilyStorage storage;
     private final VaultEconomy economy;
+    private final DisplayNames displayNames;
 
     /** owner -> time until which /family disband is confirmed */
     private final Map<UUID, Long> pendingDisband = new HashMap<>();
 
     public FamilyCommand(FamilyCraftPlugin plugin, KingdomCraft kc, FamilyManager manager,
-                         FamilyStorage storage, VaultEconomy economy) {
+                         FamilyStorage storage, VaultEconomy economy, DisplayNames displayNames) {
         this.plugin = plugin;
         this.kc = kc;
         this.manager = manager;
         this.storage = storage;
         this.economy = economy;
+        this.displayNames = displayNames;
     }
 
     // ------------------------------------------------------------------ dispatch
@@ -136,6 +139,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             throw new FamilyException("not-enough-money");
         }
         save();
+        refresh(p.getUniqueId());
         send(p, "created", "%name%", family.getName(), "%tag%", family.getTag(),
                 "%cost%", economy == null ? "" : economy.format(cost));
     }
@@ -157,6 +161,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
     private void accept(Player p) throws FamilyException {
         Family family = manager.accept(p.getUniqueId(), p.getName());
         save();
+        refresh(p.getUniqueId());
         send(p, "joined", "%name%", family.getName(), "%tag%", family.getTag());
         broadcast(family, p.getUniqueId(), "joined-broadcast", "%player%", p.getName());
     }
@@ -181,12 +186,13 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             send(p, "invites-cancelled");
             return;
         }
-        throw new FamilyException("no-invite");
+        throw new FamilyException("nothing-to-cancel");
     }
 
     private void leave(Player p) throws FamilyException {
         Family family = manager.leave(p.getUniqueId());
         save();
+        refresh(p.getUniqueId());
         send(p, "left", "%name%", family.getName());
         broadcast(family, null, "left-broadcast", "%player%", p.getName());
     }
@@ -218,6 +224,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         String name = family.getMembers().get(target);
         manager.kick(family, actor, admin, target);
         save();
+        refresh(target);
         send(sender, "kicked", "%player%", name);
         Player kicked = Bukkit.getPlayer(target);
         if (kicked != null) {
@@ -252,6 +259,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         save();
         send(sender, "disbanded", "%name%", family.getName());
         for (UUID m : members) {
+            refresh(m);
             Player online = Bukkit.getPlayer(m);
             if (online != null && online != sender) {
                 send(online, "disbanded-target", "%name%", family.getName());
@@ -344,8 +352,15 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /** Saved on the main thread: families.yml is tiny and this avoids concurrent access to the manager. */
     private void save() {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> storage.save(manager));
+        storage.save(manager);
+    }
+
+    private void refresh(UUID player) {
+        if (displayNames != null) {
+            displayNames.update(player);
+        }
     }
 
     private void send(CommandSender to, String key, String... replacements) {

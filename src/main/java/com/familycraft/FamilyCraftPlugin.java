@@ -3,6 +3,7 @@ package com.familycraft;
 import com.familycraft.command.FamilyCommand;
 import com.familycraft.economy.VaultEconomy;
 import com.familycraft.model.FamilyManager;
+import com.familycraft.placeholder.DisplayNames;
 import com.familycraft.placeholder.FamilyPlaceholders;
 import com.familycraft.storage.FamilyStorage;
 import com.gufli.kingdomcraft.api.KingdomCraft;
@@ -50,7 +51,14 @@ public class FamilyCraftPlugin extends JavaPlugin {
         placeholders = new FamilyPlaceholders(kc, manager, cfg.getString("placeholders.prefix-format", "&7[&f%tag%&7]"));
         placeholders.register();
 
-        FamilyCommand command = new FamilyCommand(this, kc, manager, storage, economy);
+        DisplayNames displayNames = null;
+        if (cfg.getBoolean("display-name.enabled", true)) {
+            displayNames = new DisplayNames(this, kc,
+                    cfg.getString("display-name.format", "{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}"));
+            displayNames.register();
+        }
+
+        FamilyCommand command = new FamilyCommand(this, kc, manager, storage, economy, displayNames);
         getCommand("family").setExecutor(command);
         getCommand("family").setTabCompleter(command);
 

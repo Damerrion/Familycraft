@@ -24,6 +24,13 @@ economy:
 placeholders:
   prefix-format: '&7[&f%tag%&7]'
 
+# KingdomCraft sets the display name to '<kingdom prefix> <name><kingdom suffix>' itself, so chat plugins
+# that show the display name (EssentialsChat, ...) never see the family. FamilyCraft rebuilds it with this
+# format. Any KingdomCraft placeholder works; %player% is the player name. Disable if you do not want this.
+display-name:
+  enabled: true
+  format: '{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}'
+
 messages:
   prefix: '&8[&6Familie&8] &7'
   no-permission: '&cJe hebt hier geen toestemming voor.'
@@ -51,6 +58,7 @@ messages:
   invite-sent: '&aUitnodiging verstuurd naar &f%player%&a.'
   invite-received: '&f%owner% &anodigt je uit voor familie &f%name% &7[%tag%]&a. Gebruik &f/family accept &aof &f/family cancel&a.'
   no-invite: '&cJe hebt geen openstaande uitnodiging.'
+  nothing-to-cancel: '&cEr is niets om te annuleren (geen uitnodiging, geen openstaande disband).'
   invite-expired: '&cDe uitnodiging is verlopen.'
   invite-declined: '&7Je hebt de uitnodiging geweigerd.'
   invite-declined-owner: '&7%player% heeft je uitnodiging geweigerd.'

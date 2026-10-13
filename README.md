@@ -29,14 +29,18 @@ publieke KingdomCraft API (`KingdomCraftProvider`) aanhaakt: de KingdomCraft jar
 Permissies: `family.use` (standaard iedereen), `family.create` (de gekochte rechten), `family.admin`
 (gratis aanmaken, `disband <tag>` / `kick <tag> <speler>` voor elke familie).
 
-## Prefix in de chat
+## Prefix in de chat / boven het hoofd
 
 FamilyCraft registreert placeholders in KingdomCraft: `{family_tag}`, `{family_prefix}`, `{family_name}`.
-Zet ze in `plugins/KingdomCraft/chat.yml`, bv.:
 
-```yaml
-format: '&7[&aP&7]&f{kingdom_prefix}{rank_prefix} {family_prefix} &f{prefix}{username}&7: &f{message}'
-```
+- **Display name** (standaard aan, `display-name` in `config.yml`): KingdomCraft zet de display name zelf op
+  `<kingdom prefix> <naam>`. FamilyCraft overschrijft die met
+  `{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}`, dus de familietag staat direct na het koninkrijk.
+  Chatplugins die de display name gebruiken (EssentialsChat e.d.) tonen dan `[Gast] [RD] doomerix`.
+- **KingdomCraft chat** (`plugins/KingdomCraft/chat.yml`): zet `{family_prefix}` in de format, bv.
+  `format: '&7[&aP&7]&f{kingdom_prefix}{family_prefix}{rank_prefix} &f{prefix}{username}&7: &f{message}'`
+- **Premium nametags/tablist** (`plugins/KingdomCraftPremium/config.yml`):
+  `prefix_format: '{kingdom_nametag_prefix}{family_prefix}{rank_nametag_prefix}'`
 
-Resultaat: `[Gast] [RD] doomerix: Gegroet!`. Alle teksten en het prefixformaat staan in `config.yml`.
-Families worden opgeslagen in `plugins/FamilyCraft/families.yml`.
+Na het wijzigen van `chat.yml` / Premium config: `/k reload` (of herstart).
+Alle teksten en het prefixformaat staan in `config.yml`. Families worden opgeslagen in `plugins/FamilyCraft/families.yml`.
