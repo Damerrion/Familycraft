@@ -13,4 +13,14 @@ public class AdminWebTest {
         assertEquals("Dokker Lijn &amp; Co", AdminWeb.esc("&6Dokker §lLijn & Co"));
         assertEquals("", AdminWeb.esc(null));
     }
+
+    @Test
+    public void parsesFormsAndCleansNames() {
+        var form = AdminWeb.parse("token=abc&action=family.rename&name=Dokker+Lijn&newtag=D%26L");
+        assertEquals("Dokker Lijn", form.get("name"));
+        assertEquals("D&L", form.get("newtag"));
+        assertEquals("Steve_1", AdminWeb.cleanName("Steve_1"));
+        assertEquals("web", AdminWeb.cleanName("<b>x</b>"));
+        assertEquals("web", AdminWeb.cleanName(null));
+    }
 }

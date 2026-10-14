@@ -136,9 +136,17 @@ het over; een Opvolger wordt opgevolgd door de Reserve-erfgenaam. Een weduwe/wed
 Vergissing: `/family deceased revive <karakter>` (of "Terug tot leven" in het lid-menu); weghalen:
 `/family deceased remove <karakter>`. Permissie `family.deceased` (iedereen, werkt als hoofd).
 
-### Admin-website
-De plugin heeft een kleine website (alleen bekijken) met alle admin- en dev-commando's, alle permissies, wie online
-admin/dev-rechten of admin/dev mode heeft, de families, overleden karakters en het archief. `/fenixcore web`
+### Admin-website (overzicht + editor)
+De plugin heeft een kleine website met alle admin- en dev-commando's, alle permissies, wie online admin/dev-rechten
+of admin/dev mode heeft, de families, overleden karakters en het archief. Het is ook een **editor**:
+- per familie (knop **Bewerken**): hernoemen (naam + tag), afstamming (kingdom), wapen terugzetten, opheffen;
+  per lid: rang geven (ook hoofd overdragen), karakter overleden verklaren, kicken; overledenen terugzetten of
+  weghalen; stamboom koppelen en ontkoppelen;
+- archief terugzetten/verwijderen, verboden namen toevoegen/weghalen, verboden wapens weer toestaan, admin/dev mode
+  van online staff uitzetten.
+Gevaarlijke acties (opheffen, kicken, verwijderen) vragen een vinkje "zeker". Elke wijziging staat in het
+**logboek** op de site en in de console (`[Web-admin] <naam> ...`); de naam komt uit de link van `/fenixcore web`.
+Spelers krijgen dezelfde meldingen als bij de commando's. `/fenixcore web`
 (permissie `fenixcore.web`, op) geeft de link met een geheim token; `/fenixcore web newtoken` maakt een nieuwe link.
 Instellen onder `web:` in config.yml (poort 8095; zet die open bij je host, en vul `public-address` in).
 

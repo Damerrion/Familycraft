@@ -60,6 +60,11 @@ public final class FamilyService {
         return manager;
     }
 
+    /** Verboden familiewapens (banned.crests). */
+    public CrestBans crestBans() {
+        return crestBans;
+    }
+
     /** Titels, geluiden, deeltjes en aankondigingen. */
     public FamilyEffects effects() {
         return effects;

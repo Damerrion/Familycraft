@@ -5,84 +5,56 @@ import com.sun.net.httpserver.HttpServer;
 import nl.fenix.core.FenixCore;
 import nl.fenix.core.family.FamilyModule;
 import nl.fenix.core.family.FamilyService;
-import nl.fenix.core.family.model.ArchivedFamily;
-import nl.fenix.core.family.model.Family;
-import nl.fenix.core.family.model.FamilyManager;
-import nl.fenix.core.wands.WandsModule;
+import nl.fenix.core.family.model.FamilyException;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.permissions.Permission;
-import org.bukkit.permissions.PermissionDefault;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 /**
- * Kleine admin-website in de plugin (alleen lezen): admin- en dev-commando's, alle permissies, wie online admin- of
- * dev-rechten / admin mode / dev mode heeft, families, overleden karakters en het archief.
+ * Kleine admin-website in de plugin: overzicht (commando's, permissies, staff, families, overledenen, archief) en
+ * editor (families, leden, rangen, stamboom, overledenen, archief, verboden namen/wapens).
  * Toegang alleen met het geheime token uit config.yml ({@code web.token}); de link krijg je met /fenixcore web.
- * De pagina wordt op de main thread opgebouwd (Bukkit is niet thread-safe) en alle tekst wordt ge-escaped
- * (familienamen komen van spelers).
+ * Pagina's en acties draaien op de main thread (Bukkit is niet thread-safe); alle tekst wordt ge-escaped
+ * (familienamen komen van spelers). Wijzigingen gaan alleen via POST-formulieren met het token erin; elke actie komt
+ * in de console en het logboek, met de naam uit de link ({@code as=}, alleen ter informatie).
  */
 public final class AdminWeb {
 
-    /** Admin- en dev-commando's: commando, permissie, uitleg. */
-    private static final String[][] COMMANDS = {
-            {"Family - admin mode", "", ""},
-            {"/family force [on|off]", "family.admin", "Admin mode aan/uit: elke familie bewerken (alleen in het geheugen)"},
-            {"/family archive [list|restore <id>|delete <id>]", "family.admin", "Archief: opgeheven/opgegane/gefuseerde families terugzetten"},
-            {"/family crest ban | unban", "family.admin", "Banner in je hand verbieden (ook in andere kleuren) of weer toestaan"},
-            {"/family crest reset <tag>", "family.admin", "Familiewapen terug naar de standaard"},
-            {"/family admin getcrest [tag]", "family.admin", "Kopie van het wapen van een familie (eigen familie kan altijd)"},
-            {"/family editor <tag>", "family.admin", "Editor van elke familie: rangen, stamboom, wapen, leden"},
-            {"/family rank give <speler> <rang>", "family.admin", "Rang geven in elke familie (Familiehoofd = hoofd overdragen)"},
-            {"/family disband <tag>", "family.admin", "Familie opheffen (komt in het archief)"},
-            {"/family kick <tag> <speler>", "family.admin", "Iemand uit een familie zetten"},
-            {"/family deceased <lid> [karakter]", "family.admin", "Roleplay-karakter overleden verklaren (ook revive/remove)"},
-            {"/family marriage force <bruidegom> <bruid>", "family.admin", "Direct trouwen als aftakking, zonder verloving"},
-            {"/divorce force <speler>", "family.admin", "Scheiden zonder akkoord van de partner"},
-            {"Family - dev mode (testen)", "", ""},
-            {"/family dev [on|off]", "family.dev", "Dev mode: alles mogen wat een hoofd/admin mag"},
-            {"/family dev fake <naam> [tag]", "family.dev", "Nep-lid in je familie (of in de familie met die tag)"},
-            {"/family dev fakefamily <hoofd> <naam> <tag>", "family.dev", "Nep-familie met nep-hoofd"},
-            {"/family dev enlope <a> <b>", "family.dev", "Direct verloven en het trouwmenu openen"},
-            {"/family dev list | clear", "family.dev", "Nep-spelers bekijken / alles opruimen"},
-            {"Wands", "", ""},
-            {"/kwa get [wand] [speler]", "kwa.getwand + kwa.wand.<wand>", "Wand-menu of een wand geven"},
-            {"/kwa create <wand> [naam]", "kwa.create", "Wand maken van het item in je hand"},
-            {"/kwa check <speler>", "kwa.admin / kwa.dev", "Kingdom, relatie en of de speler geraakt wordt"},
-            {"/kwa dev [on|off]", "kwa.dev", "Dev mode voor spells (geen cooldown, opties in wands.yml)"},
-            {"/kwa reload", "kwa.admin", "wands.yml herladen"},
-            {"FenixCore", "", ""},
-            {"/fenixcore reload [all|family|kwa]", "fenixcore.reload", "Configs herladen"},
-            {"/fenixcore web [newtoken]", "fenixcore.web", "Link naar deze website / nieuwe geheime link maken"},
-    };
-
-    /** Rechten die in de tabel met online spelers staan. */
-    private static final String[] WATCHED = {"family.admin", "family.dev", "kwa.admin", "kwa.dev", "fenixcore.reload",
-            "fenixcore.web"};
+    private static final int MAX_BODY = 64 * 1024;
+    private static final int MAX_LOG = 100;
 
     private final FenixCore core;
     private HttpServer server;
     private ExecutorService executor;
+    /** logboek, nieuwste eerst: tijd, wie, wat, gelukt */
+    private final Deque<LogEntry> log = new ArrayDeque<>();
+
+    record LogEntry(Instant time, String who, String text, boolean ok) {
+    }
+
+    /** Per verzoek: token en naam (voor links/formulieren) en de melding van de vorige actie. */
+    record Ctx(String token, String as, String msg, boolean ok) {
+    }
 
     public AdminWeb(FenixCore core) {
         this.core = core;
@@ -149,55 +121,152 @@ public final class AdminWeb {
         return token;
     }
 
-    /** De link voor /fenixcore web. */
-    public String link() {
+    /** De link voor /fenixcore web; {@code as} = naam in het logboek (wie de link vroeg). */
+    public String link(String as) {
         String host = core.getConfig().getString("web.public-address", "");
         if (host == null || host.isBlank()) {
             host = Bukkit.getIp() == null || Bukkit.getIp().isBlank() ? "<server-ip>" : Bukkit.getIp();
         }
-        return "http://" + host + ":" + core.getConfig().getInt("web.port", 8095) + "/?token=" + token();
+        return "http://" + host + ":" + core.getConfig().getInt("web.port", 8095) + "/?token=" + token()
+                + "&as=" + enc(cleanName(as));
     }
 
     // ------------------------------------------------------------------ verzoeken
 
     private void handle(HttpExchange exchange) throws IOException {
         try {
-            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                send(exchange, 405, page("Niet toegestaan", "<p>Alleen bekijken.</p>"));
+            String path = exchange.getRequestURI().getPath();
+            String method = exchange.getRequestMethod().toUpperCase();
+            Map<String, String> params = parse(exchange.getRequestURI().getRawQuery());
+            if (method.equals("POST") && path.equals("/action")) {
+                params.putAll(parse(readBody(exchange)));
+            } else if (!method.equals("GET") || path.equals("/action")) {
+                // wijzigen alleen via de formulieren (POST)
+                send(exchange, 405, WebPages.message("Niet toegestaan", "Deze actie bestaat niet."));
                 return;
             }
-            if (!exchange.getRequestURI().getPath().equals("/")) {
-                send(exchange, 404, page("Niet gevonden", "<p>Deze pagina bestaat niet.</p>"));
+            if (!validToken(params.get("token"))) {
+                send(exchange, 403, WebPages.message("Geen toegang", "Gebruik de link van /fenixcore web in-game."));
                 return;
             }
-            String given = query(exchange.getRequestURI().getRawQuery(), "token");
-            String token = token();
-            if (token.isEmpty() || given == null || !MessageDigest.isEqual(
-                    given.getBytes(StandardCharsets.UTF_8), token.getBytes(StandardCharsets.UTF_8))) {
-                send(exchange, 403, page("Geen toegang", "<p>Gebruik de link van <code>/fenixcore web</code> in-game.</p>"));
-                return;
+            Ctx ctx = new Ctx(token(), cleanName(params.get("as")), params.get("msg"), !"0".equals(params.get("ok")));
+            switch (path) {
+                case "/" -> send(exchange, 200, sync(() -> pages().overview(ctx)));
+                case "/family" -> send(exchange, 200, sync(() -> pages().family(ctx, params.get("tag"))));
+                case "/action" -> redirect(exchange, sync(() -> action(ctx, params)));
+                default -> send(exchange, 404, WebPages.message("Niet gevonden", "Deze pagina bestaat niet."));
             }
-            String html = Bukkit.getScheduler().callSyncMethod(core, this::render).get(5, TimeUnit.SECONDS);
-            send(exchange, 200, html);
         } catch (Exception e) {
-            core.getLogger().log(Level.WARNING, "Admin-website: fout bij het opbouwen van de pagina", e);
-            send(exchange, 500, page("Fout", "<p>Er ging iets mis; zie de console.</p>"));
+            core.getLogger().log(Level.WARNING, "Admin-website: fout", e);
+            send(exchange, 500, WebPages.message("Fout", "Er ging iets mis; zie de console."));
         } finally {
             exchange.close();
         }
     }
 
-    private static String query(String raw, String key) {
-        if (raw == null) {
-            return null;
+    private boolean validToken(String given) {
+        String token = token();
+        return !token.isEmpty() && given != null
+                && MessageDigest.isEqual(given.getBytes(StandardCharsets.UTF_8), token.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private <T> T sync(java.util.concurrent.Callable<T> task) throws Exception {
+        return Bukkit.getScheduler().callSyncMethod(core, task).get(10, TimeUnit.SECONDS);
+    }
+
+    private WebPages pages() {
+        FamilyModule module = core.family();
+        return new WebPages(core, module == null ? null : module.service(), snapshotLog());
+    }
+
+    /** Actie uitvoeren (main thread) en de URL om naartoe terug te gaan. */
+    private String action(Ctx ctx, Map<String, String> form) {
+        String name = form.getOrDefault("action", "");
+        String msg;
+        boolean ok;
+        FamilyModule module = core.family();
+        FamilyService service = module == null ? null : module.service();
+        if (service == null) {
+            msg = "De family-module staat uit.";
+            ok = false;
+        } else {
+            try {
+                msg = new WebActions(service).run(name, form);
+                ok = true;
+            } catch (FamilyException e) {
+                msg = WebPages.strip(service.message(e.getKey(), "%max%", "30"));
+                ok = false;
+            } catch (WebActions.WebException e) {
+                msg = e.getMessage();
+                ok = false;
+            }
+        }
+        addLog(ctx.as(), (ok ? "" : "Mislukt: ") + msg, ok);
+        core.getLogger().info("[Web-admin] " + ctx.as() + " - " + name + ": " + (ok ? "" : "MISLUKT: ") + msg);
+
+        String back = form.getOrDefault("back", "home");
+        StringBuilder url = new StringBuilder();
+        if (back.startsWith("family:") && service != null
+                && service.manager().getFamilyByTag(back.substring("family:".length())) != null) {
+            url.append("/family?tag=").append(enc(back.substring("family:".length()))).append('&');
+        } else {
+            url.append("/?");
+        }
+        return url.append("token=").append(enc(ctx.token())).append("&as=").append(enc(ctx.as()))
+                .append("&ok=").append(ok ? 1 : 0).append("&msg=").append(enc(msg)).toString();
+    }
+
+    private synchronized void addLog(String who, String text, boolean ok) {
+        log.addFirst(new LogEntry(Instant.now(), who, text, ok));
+        while (log.size() > MAX_LOG) {
+            log.removeLast();
+        }
+    }
+
+    private synchronized List<LogEntry> snapshotLog() {
+        return new ArrayList<>(log);
+    }
+
+    // ------------------------------------------------------------------ http-hulp
+
+    private static String readBody(HttpExchange exchange) throws IOException {
+        try (InputStream in = exchange.getRequestBody()) {
+            byte[] body = in.readNBytes(MAX_BODY + 1);
+            if (body.length > MAX_BODY) {
+                throw new IOException("formulier te groot");
+            }
+            return new String(body, StandardCharsets.UTF_8);
+        }
+    }
+
+    static Map<String, String> parse(String raw) {
+        Map<String, String> map = new HashMap<>();
+        if (raw == null || raw.isEmpty()) {
+            return map;
         }
         for (String part : raw.split("&")) {
             int eq = part.indexOf('=');
-            if (eq > 0 && part.substring(0, eq).equals(key)) {
-                return URLDecoder.decode(part.substring(eq + 1), StandardCharsets.UTF_8);
-            }
+            String key = URLDecoder.decode(eq < 0 ? part : part.substring(0, eq), StandardCharsets.UTF_8);
+            String value = eq < 0 ? "" : URLDecoder.decode(part.substring(eq + 1), StandardCharsets.UTF_8);
+            map.put(key, value);
         }
-        return null;
+        return map;
+    }
+
+    static String enc(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    /** Naam voor het logboek: alleen Minecraft-naamtekens. */
+    static String cleanName(String name) {
+        return name != null && name.matches("[A-Za-z0-9_]{1,16}") ? name : "web";
+    }
+
+    private static void redirect(HttpExchange exchange, String location) throws IOException {
+        exchange.getResponseHeaders().set("Location", location);
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.getResponseHeaders().set("Referrer-Policy", "no-referrer");
+        exchange.sendResponseHeaders(303, -1);
     }
 
     private static void send(HttpExchange exchange, int status, String html) throws IOException {
@@ -208,208 +277,21 @@ public final class AdminWeb {
         headers.set("Referrer-Policy", "no-referrer");
         headers.set("X-Frame-Options", "DENY");
         headers.set("X-Content-Type-Options", "nosniff");
-        headers.set("Content-Security-Policy",
-                "default-src 'none'; style-src 'unsafe-inline'; img-src https://mc-heads.net; base-uri 'none'; form-action 'none'");
+        headers.set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; "
+                + "img-src https://mc-heads.net; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
         exchange.sendResponseHeaders(status, body.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(body);
         }
     }
 
-    // ------------------------------------------------------------------ pagina (main thread)
-
-    private String render() {
-        StringBuilder b = new StringBuilder();
-        FamilyModule familyModule = core.family();
-        FamilyService family = familyModule == null ? null : familyModule.service();
-        WandsModule wands = core.wands();
-
-        b.append("<header><h1>⚜ FenixCore <span>admin-overzicht</span></h1><p class=\"muted\">")
-                .append(esc(Bukkit.getServer().getName())).append(' ').append(esc(Bukkit.getMinecraftVersion()))
-                .append(" · FenixCore ").append(esc(core.getPluginMeta().getVersion()))
-                .append(" · ").append(Bukkit.getOnlinePlayers().size()).append(" online · bijgewerkt ")
-                .append(esc(date(Instant.now()))).append("</p><p>")
-                .append(badge("Wands", wands != null)).append(badge("Family", family != null))
-                .append("</p></header>");
-
-        // wie is er nu online met admin/dev-rechten of een mode aan
-        b.append("<section><h2>Online staff</h2>");
-        List<Player> staff = new ArrayList<>();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            boolean any = p.isOp();
-            for (String perm : WATCHED) {
-                any |= p.hasPermission(perm);
-            }
-            if (any || (family != null && (family.isAdminMode(p) || family.isDev(p))) || (wands != null && wands.isDev(p))) {
-                staff.add(p);
-            }
-        }
-        if (staff.isEmpty()) {
-            b.append("<p class=\"muted\">Niemand online met admin- of dev-rechten.</p>");
-        } else {
-            b.append("<div class=\"scroll\"><table><tr><th>Speler</th><th>op</th>");
-            for (String perm : WATCHED) {
-                b.append("<th>").append(esc(perm)).append("</th>");
-            }
-            b.append("<th>Admin mode</th><th>Family dev</th><th>Kwa dev</th></tr>");
-            staff.sort(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER));
-            for (Player p : staff) {
-                b.append("<tr><td>").append(head(p.getUniqueId())).append(esc(p.getName())).append("</td>")
-                        .append(check(p.isOp()));
-                for (String perm : WATCHED) {
-                    b.append(check(p.hasPermission(perm)));
-                }
-                b.append(mode(family != null && family.isAdminMode(p)))
-                        .append(mode(family != null && family.isDev(p)))
-                        .append(mode(wands != null && wands.isDev(p))).append("</tr>");
-            }
-            b.append("</table></div>");
-        }
-        b.append("<p class=\"muted\">Rechten van offline spelers staan in LuckPerms (<code>/lp user &lt;naam&gt; permission info</code>).</p></section>");
-
-        // commando's
-        b.append("<section><h2>Admin- en dev-commando's</h2><div class=\"scroll\"><table><tr><th>Commando</th><th>Permissie</th><th>Wat</th></tr>");
-        for (String[] row : COMMANDS) {
-            if (row[1].isEmpty()) {
-                b.append("<tr class=\"group\"><td colspan=\"3\">").append(esc(row[0])).append("</td></tr>");
-            } else {
-                b.append("<tr><td><code>").append(esc(row[0])).append("</code></td><td><code>").append(esc(row[1]))
-                        .append("</code></td><td>").append(esc(row[2])).append("</td></tr>");
-            }
-        }
-        b.append("</table></div><p class=\"muted\">Family-admincommando's werken alleen met admin mode aan "
-                + "(<code>/family force</code>) of dev mode; zonder is ook een op een gewone speler.</p></section>");
-
-        // alle permissies uit plugin.yml
-        List<Permission> perms = new ArrayList<>(core.getPluginMeta().getPermissions());
-        perms.sort(Comparator.comparing(Permission::getName));
-        b.append("<section><h2>Permissies</h2><div class=\"scroll\"><table><tr><th>Permissie</th><th>Standaard</th><th>Wat</th></tr>");
-        for (Permission perm : perms) {
-            boolean staffPerm = isStaffPermission(perm);
-            b.append("<tr").append(staffPerm ? " class=\"staff\"" : "").append("><td><code>").append(esc(perm.getName()))
-                    .append("</code>").append(staffPerm ? " <span class=\"tag\">admin/dev</span>" : "")
-                    .append("</td><td>").append(esc(defaultName(perm.getDefault()))).append("</td><td>")
-                    .append(esc(perm.getDescription())).append("</td></tr>");
-        }
-        b.append("</table></div><p class=\"muted\">Per wand komen er automatisch <code>kwa.use.&lt;wand&gt;</code> en "
-                + "<code>kwa.wand.&lt;wand&gt;</code> bij.</p></section>");
-
-        if (family != null) {
-            renderFamilies(b, family);
-        }
-        return page("FenixCore admin", b.toString());
-    }
-
-    private void renderFamilies(StringBuilder b, FamilyService service) {
-        FamilyManager manager = service.manager();
-        List<Family> families = new ArrayList<>(manager.getFamilies());
-        families.sort(Comparator.comparing(f -> f.getName().toLowerCase()));
-        b.append("<section><h2>Families <span class=\"count\">").append(families.size()).append("</span></h2>");
-        if (families.isEmpty()) {
-            b.append("<p class=\"muted\">Nog geen families.</p>");
-        } else {
-            b.append("<div class=\"scroll\"><table><tr><th>Tag</th><th>Naam</th><th>Hoofd</th><th>Leden</th>"
-                    + "<th>Overleden</th><th>Afstamming</th><th>Opgericht</th></tr>");
-            for (Family f : families) {
-                int dead = f.getMembers().size() - manager.livingCount(f);
-                b.append("<tr><td><b>").append(esc(f.getTag())).append("</b></td><td>").append(esc(f.getName()))
-                        .append(f.needsRename() ? " <span class=\"tag\">moet hernoemen</span>" : "")
-                        .append("</td><td>").append(head(f.getOwner())).append(esc(f.getOwnerName())).append("</td><td>")
-                        .append(manager.livingCount(f)).append("</td><td>").append(dead == 0 ? "" : "✝ " + dead)
-                        .append("</td><td>").append(esc(f.getKingdomName() == null ? "-" : f.getKingdomName()))
-                        .append("</td><td>").append(esc(date(f.getCreatedAt()))).append("</td></tr>");
-            }
-            b.append("</table></div>");
-        }
-        b.append("</section>");
-
-        // overleden karakters
-        b.append("<section><h2>Overleden karakters <span class=\"count\">").append(manager.getAllDeceased().size())
-                .append("</span></h2>");
-        if (manager.getAllDeceased().isEmpty()) {
-            b.append("<p class=\"muted\">Nog niemand overleden.</p>");
-        } else {
-            b.append("<div class=\"scroll\"><table><tr><th>Karakter</th><th>Gespeeld door</th><th>Familie</th><th>Was</th><th>Overleden</th></tr>");
-            for (Map.Entry<UUID, FamilyManager.Deceased> e : manager.getAllDeceased().entrySet()) {
-                FamilyManager.Deceased d = e.getValue();
-                Family f = manager.getFamily(e.getKey());
-                b.append("<tr><td>✝ ").append(esc(d.getName())).append("</td><td>").append(head(d.getPlayer()))
-                        .append(esc(manager.getGenealogy().name(d.getPlayer()))).append("</td><td>")
-                        .append(esc(f == null ? "(archief)" : f.getName())).append("</td><td>")
-                        .append(esc(service.rankName(d.getFormerRank()))).append("</td><td>")
-                        .append(esc(date(d.getDiedAt()))).append("</td></tr>");
-            }
-            b.append("</table></div>");
-        }
-        b.append("</section>");
-
-        // archief
-        List<ArchivedFamily> archive = manager.getArchive();
-        b.append("<section><h2>Archief <span class=\"count\">").append(archive.size()).append("</span></h2>");
-        if (archive.isEmpty()) {
-            b.append("<p class=\"muted\">Het archief is leeg.</p>");
-        } else {
-            b.append("<div class=\"scroll\"><table><tr><th>Id</th><th>Naam</th><th>Reden</th><th>Leden</th><th>Gearchiveerd</th></tr>");
-            for (ArchivedFamily a : archive) {
-                b.append("<tr><td><code>").append(esc(a.getId())).append("</code></td><td>").append(esc(a.getName()))
-                        .append(" [").append(esc(a.getTag())).append("]</td><td>")
-                        .append(esc(strip(service.archiveReason(a.getReason())))).append("</td><td>")
-                        .append(a.getMembers().size()).append("</td><td>").append(esc(date(a.getArchivedAt())))
-                        .append("</td></tr>");
-            }
-            b.append("</table></div><p class=\"muted\">Terugzetten: <code>/family archive restore &lt;id&gt;</code> (admin mode).</p>");
-        }
-        b.append("</section>");
-    }
-
-    // ------------------------------------------------------------------ hulp
-
-    private static boolean isStaffPermission(Permission perm) {
-        String n = perm.getName();
-        return n.endsWith(".admin") || n.endsWith(".dev") || n.startsWith("fenixcore.") || n.endsWith(".create")
-                || n.endsWith(".*") || n.equals("kwa.getwand") || n.startsWith("kwa.wand.");
-    }
-
-    private static String defaultName(PermissionDefault def) {
-        return switch (def) {
-            case TRUE -> "iedereen";
-            case FALSE -> "niemand";
-            case OP -> "op";
-            case NOT_OP -> "niet-op";
-        };
-    }
-
-    private static String badge(String name, boolean on) {
-        return "<span class=\"badge " + (on ? "on" : "off") + "\">" + name + (on ? " aan" : " uit") + "</span>";
-    }
-
-    private static String check(boolean yes) {
-        return yes ? "<td class=\"yes\">✔</td>" : "<td class=\"no\">–</td>";
-    }
-
-    private static String mode(boolean on) {
-        return on ? "<td class=\"mode\">AAN</td>" : "<td class=\"no\">–</td>";
-    }
-
-    private static String head(UUID uuid) {
-        return uuid == null ? "" : "<img class=\"head\" alt=\"\" src=\"https://mc-heads.net/avatar/" + uuid + "/16\">";
-    }
-
-    private static String date(Instant instant) {
-        return DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm").withZone(ZoneId.systemDefault()).format(instant);
-    }
-
-    /** Minecraft-kleurcodes weghalen (&amp;a, §a). */
-    private static String strip(String text) {
-        return text == null ? "" : text.replaceAll("[&§][0-9a-fk-orA-FK-OR]", "");
-    }
-
+    /** HTML-escapen en Minecraft-kleurcodes weghalen. */
     static String esc(String text) {
         if (text == null) {
             return "";
         }
         StringBuilder sb = new StringBuilder(text.length());
-        for (char c : strip(text).toCharArray()) {
+        for (char c : WebPages.strip(text).toCharArray()) {
             switch (c) {
                 case '<' -> sb.append("&lt;");
                 case '>' -> sb.append("&gt;");
@@ -421,28 +303,4 @@ public final class AdminWeb {
         }
         return sb.toString();
     }
-
-    private static String page(String title, String body) {
-        return "<!doctype html><html lang=\"nl\"><head><meta charset=\"utf-8\">"
-                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-                + "<meta name=\"robots\" content=\"noindex\"><title>" + esc(title) + "</title><style>" + CSS
-                + "</style></head><body><main>" + body + "</main></body></html>";
-    }
-
-    private static final String CSS = """
-            :root{--bg:#15121a;--panel:#1f1a27;--line:#2f2838;--text:#ece6f2;--muted:#9a90a8;--gold:#e8b84a;--green:#5fd38a;--red:#e06a6a;--purple:#b98cf0}
-            *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-            main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
-            header{border-bottom:2px solid var(--gold);margin-bottom:24px;padding-bottom:12px}
-            h1{margin:0;color:var(--gold);font-size:28px;letter-spacing:.5px}h1 span{color:var(--text);font-weight:400}
-            h2{color:var(--gold);font-size:19px;margin:0 0 12px}section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:20px}
-            .muted{color:var(--muted);font-size:13px}.count{background:var(--line);color:var(--text);border-radius:999px;padding:1px 9px;font-size:13px;margin-left:6px}
-            .badge{display:inline-block;border-radius:6px;padding:2px 10px;margin-right:8px;font-size:13px;font-weight:600}.on{background:#1f3a2a;color:var(--green)}.off{background:#3a1f22;color:var(--red)}
-            .scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
-            td:last-child{white-space:normal}th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
-            tr.group td{color:var(--purple);font-weight:700;padding-top:16px}tr.staff code{color:var(--gold)}
-            code{background:#2a2333;border-radius:4px;padding:1px 6px;font-size:13px}.tag{background:#3a2f15;color:var(--gold);border-radius:4px;padding:1px 6px;font-size:11px;margin-left:4px}
-            .yes{color:var(--green);text-align:center}.no{color:var(--muted);text-align:center}.mode{color:#15121a;background:var(--gold);font-weight:700;text-align:center;border-radius:4px}
-            .head{width:16px;height:16px;vertical-align:-3px;margin-right:6px;image-rendering:pixelated;border-radius:2px}
-            """;
 }

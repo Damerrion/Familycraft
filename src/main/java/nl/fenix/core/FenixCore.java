@@ -150,7 +150,7 @@ public final class FenixCore extends JavaPlugin {
             sender.sendRichMessage("<red>De admin-website staat uit of kon niet starten (web.* in config.yml, zie de console).");
             return;
         }
-        String link = web.link();
+        String link = web.link(sender instanceof org.bukkit.entity.Player p ? p.getName() : "console");
         if (link.contains("<server-ip>")) {
             sender.sendRichMessage("<gold>⚜ Admin-website <gray>(vervang server-ip in de link door het adres van je server):");
             sender.sendMessage(link);
