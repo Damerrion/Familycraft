@@ -126,6 +126,22 @@ gevallen) krijgt de speler een titel, geluid en deeltjes; een nieuw huis en een 
 aangekondigd. Instellen onder `effects:` in family.yml (geluiden = Minecraft-keys, leeg = stil), teksten onder
 `messages.title-*`, `subtitle-*` en `announce-*`.
 
+### Overleden roleplay-karakters
+Sterft het roleplay-karakter van een lid, dan maakt het hoofd (of een admin) er een **gedenkplaats** van:
+`/family deceased <lid> [karakternaam]` (of in `/family editor` → lid → **✝ Overleden verklaren**, de karakternaam
+typ je dan in de chat). Het karakter blijft als ✝ (skelet-schedel, grijze naam) in de familie en de stamboom staan,
+met al zijn relaties (ouders, kinderen, partner) en afkomst. De speler blijft lid als Kind van het Huis zonder
+relaties en kan verder met een nieuw karakter. Was het karakter hoofd, dan neemt de Opvolger (of Reserve-erfgenaam)
+het over; een Opvolger wordt opgevolgd door de Reserve-erfgenaam. Een weduwe/weduwnaar mag opnieuw trouwen.
+Vergissing: `/family deceased revive <karakter>` (of "Terug tot leven" in het lid-menu); weghalen:
+`/family deceased remove <karakter>`. Permissie `family.deceased` (iedereen, werkt als hoofd).
+
+### Admin-website
+De plugin heeft een kleine website (alleen bekijken) met alle admin- en dev-commando's, alle permissies, wie online
+admin/dev-rechten of admin/dev mode heeft, de families, overleden karakters en het archief. `/fenixcore web`
+(permissie `fenixcore.web`, op) geeft de link met een geheim token; `/fenixcore web newtoken` maakt een nieuwe link.
+Instellen onder `web:` in config.yml (poort 8095; zet die open bij je host, en vul `public-address` in).
+
 ### Verboden namen en wapens
 - `banned.names` in family.yml: woorden die niet in een familienaam of tag mogen (ook midden in de naam; hoofdletters,
   spaties, `_` en `-` tellen niet, dus `Na_Zi` = `nazi`). Geldt bij maken en hernoemen.

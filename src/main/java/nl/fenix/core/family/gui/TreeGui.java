@@ -81,7 +81,7 @@ public final class TreeGui extends Gui {
                 }
                 if (cell.member() != null) {
                     UUID member = cell.member();
-                    set(slot, GuiItems.head(member, service.rankColor(family.getRank(member)) + service.nameOf(member),
+                    set(slot, Lore.icon(service, family, member, service.rankColor(family.getRank(member)) + service.nameOf(member),
                             Lore.member(service, family, member)), e -> {
                         if (service.canEdit((Player) e.getWhoClicked(), family)) {
                             openLater((Player) e.getWhoClicked(), new MemberGui(service, family, member));
@@ -90,8 +90,8 @@ public final class TreeGui extends Gui {
                 } else if (cell.partnerA() != null) {
                     set(slot, GuiItems.item(Material.PINK_STAINED_GLASS_PANE, text("tree-partner", "&d❤ Getrouwd"),
                             List.of(text("tree-partner-lore", "&7%a% &d& &7%b%")
-                                    .replace("%a%", service.nameOf(cell.partnerA()))
-                                    .replace("%b%", service.nameOf(cell.partnerB())))));
+                                    .replace("%a%", Lore.nameOf(service, cell.partnerA()))
+                                    .replace("%b%", Lore.nameOf(service, cell.partnerB())))));
                 }
             }
         }

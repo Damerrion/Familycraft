@@ -49,6 +49,20 @@ public class FamilyStorage {
         }
         loadEngagements(yaml, manager);
         loadArchive(yaml, manager);
+        ConfigurationSection dead = yaml.getConfigurationSection("deceased");
+        if (dead != null) {
+            for (String key : dead.getKeys(false)) {
+                try {
+                    ConfigurationSection d = dead.getConfigurationSection(key);
+                    FamilyRank rank = FamilyRank.parse(d.getString("rank"));
+                    manager.loadDeceased(UUID.fromString(key), new FamilyManager.Deceased(UUID.fromString(d.getString("player")),
+                            d.getString("name", "?"), rank == null ? FamilyRank.CHILD : rank,
+                            Instant.ofEpochMilli(d.getLong("died"))));
+                } catch (RuntimeException ex) {
+                    logger.warning("Overleden karakter '" + key + "' kon niet geladen worden: " + ex);
+                }
+            }
+        }
         for (String fake : yaml.getStringList("fakes")) {
             try {
                 manager.getFakes().add(UUID.fromString(fake));
@@ -252,6 +266,14 @@ public class FamilyStorage {
         }
         if (!archive.isEmpty()) {
             yaml.set("archive", archive);
+        }
+        for (Map.Entry<UUID, FamilyManager.Deceased> e : manager.getAllDeceased().entrySet()) {
+            String path = "deceased." + e.getKey();
+            FamilyManager.Deceased d = e.getValue();
+            yaml.set(path + ".player", d.getPlayer().toString());
+            yaml.set(path + ".name", d.getName());
+            yaml.set(path + ".rank", d.getFormerRank().id());
+            yaml.set(path + ".died", d.getDiedAt().toEpochMilli());
         }
         if (!manager.getFakes().isEmpty()) {
             List<String> fakes = new ArrayList<>();

@@ -2,6 +2,7 @@ package nl.fenix.core;
 
 import nl.fenix.core.family.FamilyModule;
 import nl.fenix.core.wands.WandsModule;
+import nl.fenix.core.web.AdminWeb;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,6 +25,17 @@ public final class FenixCore extends JavaPlugin {
 
     private WandsModule wands;
     private FamilyModule family;
+    private AdminWeb web;
+
+    /** null als de module uit staat. */
+    public WandsModule wands() {
+        return wands;
+    }
+
+    /** null als de module uit staat (of nog niet gestart is: dat gebeurt 1 tick na het opstarten). */
+    public FamilyModule family() {
+        return family;
+    }
 
     @Override
     public void onEnable() {
@@ -33,6 +45,11 @@ public final class FenixCore extends JavaPlugin {
         adopt("FamilyCraft", FamilyModule.DATA_FILE, FamilyModule.DATA_FILE);
 
         saveDefaultConfig();
+        if (!getConfig().isSet("web.port")) {
+            // nieuwe instellingen (admin-website) in een bestaande config.yml zetten
+            getConfig().options().copyDefaults(true);
+            saveConfig();
+        }
 
         if (moduleEnabled("wands", "KingdomWandsAddon")) {
             wands = new WandsModule(this);
@@ -49,11 +66,16 @@ public final class FenixCore extends JavaPlugin {
                 return true;
             });
             fenix.setTabCompleter((sender, cmd, label, args) -> args.length == 1
-                    ? List.of("reload").stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList()
+                    ? List.of("reload", "web").stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList()
                     : args.length == 2 && args[0].equalsIgnoreCase("reload")
                     ? List.of("all", "family", "kwa").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList()
+                    : args.length == 2 && args[0].equalsIgnoreCase("web")
+                    ? List.of("newtoken").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList()
                     : List.of());
         }
+
+        web = new AdminWeb(this);
+        web.start();
 
         if (moduleEnabled("family", "FamilyCraft")) {
             // pas na het opstarten van alle plugins, zodat KingdomCraft zeker geladen is
@@ -78,8 +100,12 @@ public final class FenixCore extends JavaPlugin {
         }
     }
 
-    /** /fenixcore [reload [all|family|kwa]] */
+    /** /fenixcore [reload [all|family|kwa] | web [newtoken]] */
     private void fenixCommand(CommandSender sender, String[] args) {
+        if (args.length > 0 && args[0].equalsIgnoreCase("web")) {
+            webCommand(sender, args);
+            return;
+        }
         if (!sender.hasPermission("fenixcore.reload")) {
             sender.sendRichMessage("<red>Je hebt hier geen toestemming voor.");
             return;
@@ -97,6 +123,7 @@ public final class FenixCore extends JavaPlugin {
         }
         if (what.equals("all")) {
             reloadConfig();
+            web.start(); // poort/aan-uit kan veranderd zijn
         }
         if (what.equals("all") || what.equals("kwa") || what.equals("wands")) {
             reloadModule(sender, "wands (wands.yml)", wands == null ? null : wands::reload);
@@ -107,6 +134,34 @@ public final class FenixCore extends JavaPlugin {
         if (what.equals("all")) {
             sender.sendRichMessage("<gray>Modules aan/uit zetten (config.yml) vraagt een herstart.");
         }
+    }
+
+    /** /fenixcore web [newtoken]: link naar de admin-website (met het geheime token). */
+    private void webCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("fenixcore.web")) {
+            sender.sendRichMessage("<red>Je hebt hier geen toestemming voor.");
+            return;
+        }
+        if (args.length > 1 && args[1].equalsIgnoreCase("newtoken")) {
+            web.newToken();
+            sender.sendRichMessage("<gold>Nieuwe geheime link gemaakt; de oude werkt niet meer.");
+        }
+        if (!web.isRunning()) {
+            sender.sendRichMessage("<red>De admin-website staat uit of kon niet starten (web.* in config.yml, zie de console).");
+            return;
+        }
+        String link = web.link();
+        if (link.contains("<server-ip>")) {
+            sender.sendRichMessage("<gold>⚜ Admin-website <gray>(vervang server-ip in de link door het adres van je server):");
+            sender.sendMessage(link);
+            sender.sendRichMessage("<gray>Zet het adres in <white>web.public-address</white> (config.yml) voor een klikbare link.");
+            return;
+        }
+        sender.sendMessage(net.kyori.adventure.text.Component.text("⚜ Admin-website: ", net.kyori.adventure.text.format.NamedTextColor.GOLD)
+                .append(net.kyori.adventure.text.Component.text("[klik om te openen]", net.kyori.adventure.text.format.NamedTextColor.YELLOW)
+                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(link)))
+                .append(net.kyori.adventure.text.Component.text(" (deel deze link alleen met staff)", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
+        sender.sendMessage(link);
     }
 
     private void reloadModule(CommandSender sender, String name, Runnable reload) {
@@ -125,6 +180,9 @@ public final class FenixCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (web != null) {
+            web.stop();
+        }
         if (family != null) {
             family.disable();
             family = null;

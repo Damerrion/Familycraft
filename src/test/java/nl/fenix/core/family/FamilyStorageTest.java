@@ -125,4 +125,26 @@ public class FamilyStorageTest {
         assertEquals("Gast", back.getKingdomName());
         assertEquals(a.getCreatedAt().toEpochMilli(), back.getCreatedAt().toEpochMilli());
     }
+
+    @Test
+    public void deceasedCharactersSurviveARestart() throws Exception {
+        UUID head = UUID.randomUUID(), son = UUID.randomUUID();
+        FamilyManager manager = new FamilyManager(30, 3, 0, 60);
+        Family a = manager.create(head, "Head", "Dokker_Lijn", "DL");
+        manager.invite(a, head, son);
+        manager.accept(son, "Son");
+        manager.link(a, head, false, Genealogy.Relation.PARENT, head, son);
+        UUID memorial = manager.declareDeceased(a, head, false, son, "Ser_Bram").memorial();
+
+        File file = folder.newFile("families.yml");
+        new FamilyStorage(file, logger).save(manager);
+        FamilyManager loaded = new FamilyManager(30, 3, 0, 60);
+        new FamilyStorage(file, logger).load(loaded);
+
+        assertTrue(loaded.isDeceased(memorial));
+        assertEquals(son, loaded.getDeceased(memorial).getPlayer());
+        assertEquals("Ser Bram", loaded.getFamilyByTag("DL").getMembers().get(memorial));
+        assertTrue(loaded.getGenealogy().parentsOf(memorial).contains(head));
+        assertTrue(loaded.getFamilyByTag("DL").isMember(son));
+    }
 }

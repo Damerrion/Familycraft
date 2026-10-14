@@ -40,7 +40,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
             "accept", "cancel", "create", "disband", "check", "invite", "kick", "leave", "members", "info", "help",
-            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "getcrest", "dev", "force", "admin", "archive");
+            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "getcrest", "deceased", "dev", "force", "admin", "archive");
 
     /** Rechten per functie (LuckPerms). Niet in de lijst = family.use. */
     private static final Map<String, String> PERMISSIONS = Map.ofEntries(
@@ -51,7 +51,8 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             Map.entry("tree", "family.tree"), Map.entry("stamboom", "family.tree"),
             Map.entry("marriage", "family.marriage"), Map.entry("huwelijk", "family.marriage"),
             Map.entry("rename", "family.rename"),
-            Map.entry("crest", "family.crest"));
+            Map.entry("crest", "family.crest"),
+            Map.entry("deceased", "family.deceased"), Map.entry("overleden", "family.deceased"));
 
     private final FamilyModule plugin;
     private final KingdomCraft kc;
@@ -160,6 +161,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     break;
                 case "getcrest":
                     getCrest(player(sender), rest);
+                    break;
+                case "deceased":
+                case "overleden":
+                    deceased(player(sender), rest);
                     break;
                 case "archive":
                 case "archief":
@@ -394,9 +399,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             return;
         }
         sender.sendMessage(message("members-header", "%name%", family.getName(), "%tag%", family.getTag(),
-                "%count%", String.valueOf(family.getMembers().size())));
+                "%count%", String.valueOf(manager.livingCount(family))));
         for (Map.Entry<UUID, String> e : family.getMembers().entrySet()) {
-            String role = message("role-rank", "%rank%", service.rankName(family.getRank(e.getKey())));
+            String role = manager.isDeceased(e.getKey()) ? message("role-deceased")
+                    : message("role-rank", "%rank%", service.rankName(family.getRank(e.getKey())));
             sender.sendMessage(message("members-entry", "%player%", e.getValue(), "%role%", role).trim());
         }
     }
@@ -547,6 +553,48 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             default -> service.setCrest(player(sender), editableFamily(player(sender), args, 0),
                     player(sender).getInventory().getItemInMainHand());
         }
+    }
+
+    /**
+     * /family deceased &lt;lid&gt; [karakternaam] | revive &lt;karakter&gt; | remove &lt;karakter&gt;: het roleplay-karakter
+     * van een lid overlijdt (gedenkplaats in de stamboom), of dat terugdraaien/weghalen.
+     */
+    private void deceased(Player p, String[] args) throws FamilyException {
+        if (args.length == 0) {
+            throw new FamilyException("usage-deceased");
+        }
+        String action = args[0].toLowerCase(Locale.ROOT);
+        if ((action.equals("revive") || action.equals("remove")) && args.length >= 2) {
+            String wanted = String.join(" ", Arrays.copyOfRange(args, 1, args.length)).replace('_', ' ');
+            Family own = manager.getFamily(p.getUniqueId());
+            Family found = null;
+            UUID memorial = null;
+            for (Family f : manager.getFamilies()) {
+                if (f != own && !service.isAdmin(p)) {
+                    continue;
+                }
+                for (UUID uuid : f.getMembers().keySet()) {
+                    if (manager.isDeceased(uuid) && (f.getMembers().get(uuid).equalsIgnoreCase(wanted)
+                            || uuid.toString().equalsIgnoreCase(wanted)) && (memorial == null || f == own)) {
+                        found = f;
+                        memorial = uuid;
+                    }
+                }
+            }
+            if (memorial == null) {
+                throw new FamilyException("deceased-not-found");
+            }
+            if (action.equals("revive")) {
+                service.revive(p, found, memorial);
+            } else {
+                service.removeDeceased(p, found, memorial);
+            }
+            return;
+        }
+        Family family = targetFamily(p, args[0]);
+        UUID member = memberOf(family, args[0]);
+        String character = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : null;
+        service.declareDeceased(p, family, member, character);
     }
 
     /** /family admin getcrest [tag] (ook /family getcrest): kopie van het wapen; andere families alleen in admin mode. */
@@ -846,6 +894,12 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     return filter(Arrays.asList("on", "off", "getcrest"), args[1]);
                 case "getcrest":
                     return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[1]);
+                case "deceased":
+                case "overleden": {
+                    List<String> options = new ArrayList<>(List.of("revive", "remove"));
+                    options.addAll(memberNames(sender));
+                    return filter(options, args[1]);
+                }
                 case "crest":
                     List<String> crest = new ArrayList<>();
                     if (service.isAdmin(sender)) {
@@ -893,6 +947,19 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         if (args.length == 3 && sub.equals("crest") && args[1].equalsIgnoreCase("reset") && service.isAdmin(sender)) {
             return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[2]);
         }
+        if (args.length == 3 && (sub.equals("deceased") || sub.equals("overleden"))
+                && (args[1].equalsIgnoreCase("revive") || args[1].equalsIgnoreCase("remove")) && sender instanceof Player pl) {
+            Family f = manager.getFamily(pl.getUniqueId());
+            List<String> dead = new ArrayList<>();
+            if (f != null) {
+                f.getMembers().forEach((uuid, n) -> {
+                    if (manager.isDeceased(uuid)) {
+                        dead.add(n.replace(' ', '_'));
+                    }
+                });
+            }
+            return filter(dead, args[2]);
+        }
         if (args.length == 3 && sub.equals("marriage")) {
             List<String> names = new ArrayList<>(memberNames(sender));
             Bukkit.getOnlinePlayers().forEach(pl -> names.add(pl.getName()));
@@ -905,7 +972,13 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         if (sender instanceof Player) {
             Family f = manager.getFamily(((Player) sender).getUniqueId());
             if (f != null) {
-                return new ArrayList<>(f.getMembers().values());
+                List<String> names = new ArrayList<>();
+                f.getMembers().forEach((uuid, name) -> {
+                    if (!manager.isDeceased(uuid)) {
+                        names.add(name);
+                    }
+                });
+                return names;
             }
         }
         return new ArrayList<>();

@@ -207,3 +207,19 @@ v7:
     - '&6/family archive &7- Archief: families terugzetten (admin mode)'
     - '&6/family crest ban|unban &7- Banner in je hand verbieden (admin mode)'
     - '&6/family crest reset <tag> &7- Wapen terugzetten (admin mode)'
+v8:
+  messages:
+    help-extra:
+    - '&8» &6/family list [kingdom|all] &8- &7Families van je kingdom, een kingdom of alle'
+    - '&8» &6/family editor &8- &7Familiewapen, rangen en stamboom bewerken'
+    - '&8» &6/family rank give <speler> <rang> &8- &7Geef een lid een rang'
+    - '&8» &6/family tree link <parent|child|partner|sibling> <a> <b> &8- &7Stamboom koppelen'
+    - '&8» &6/enlope <speler> &8- &7Iemand ten huwelijk vragen (verloving)'
+    - '&8» &6/family marriage &8- &7Trouwmenu (rollen, keuze, starten)'
+    - '&8» &6/family crest &8- &7Banner in je hand als familiewapen'
+    - '&8» &6/divorce &8- &7Scheiden (je partner moet bevestigen)'
+    - '&8» &6/family force &8- &7Admin mode (staff)'
+    - '&8» &6/family archive &8- &7Archief: families terugzetten (admin mode)'
+    - '&8» &6/family crest ban|unban &8- &7Banner in je hand verbieden (admin mode)'
+    - '&8» &6/family crest reset <tag> &8- &7Wapen terugzetten (admin mode)'
+    - '&8» &6/family admin getcrest [tag] &8- &7Kopie van het familiewapen (andere huizen: admin mode)'

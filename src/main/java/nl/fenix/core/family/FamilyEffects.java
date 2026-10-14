@@ -27,7 +27,8 @@ public final class FamilyEffects {
         ENGAGED("engaged", Particle.HEART),
         WEDDING("wedding", Particle.HEART),
         CREST("crest", Particle.ENCHANT),
-        DISBANDED("disbanded", Particle.LARGE_SMOKE);
+        DISBANDED("disbanded", Particle.LARGE_SMOKE),
+        DECEASED("deceased", Particle.SOUL);
 
         private final String key;
         private final Particle particle;

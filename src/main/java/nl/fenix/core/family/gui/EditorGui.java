@@ -62,7 +62,7 @@ public final class EditorGui extends Gui {
                 lore.add("");
                 lore.add(text("member-click", "&eKlik om rang en stamboom te bewerken"));
             }
-            set(FIRST_MEMBER_SLOT + i, GuiItems.head(member, service.rankColor(family.getRank(member)) + service.nameOf(member), lore), e -> {
+            set(FIRST_MEMBER_SLOT + i, Lore.icon(service, family, member, service.rankColor(family.getRank(member)) + service.nameOf(member), lore), e -> {
                 if (editable) {
                     openLater((Player) e.getWhoClicked(), new MemberGui(service, family, member));
                 }

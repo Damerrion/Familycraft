@@ -248,6 +248,44 @@ public class Genealogy {
         origins.remove(player);
     }
 
+    /**
+     * Alle relaties en de afkomst van {@code from} overzetten naar {@code to} (een overleden karakter neemt ze over,
+     * of andersom bij terugdraaien). {@code to} mag nog geen relaties hebben.
+     */
+    public void transfer(UUID from, UUID to) throws FamilyException {
+        if (!relativesOf(to).isEmpty()) {
+            throw new FamilyException("deceased-revive-conflict");
+        }
+        Set<UUID> ownParents = parents.remove(from);
+        if (ownParents != null) {
+            parents.put(to, ownParents);
+        }
+        for (Set<UUID> set : parents.values()) {
+            if (set.remove(from)) {
+                set.add(to);
+            }
+        }
+        UUID partner = partners.remove(from);
+        if (partner != null) {
+            partners.put(to, partner);
+            partners.put(partner, to);
+        }
+        Set<UUID> ownSiblings = siblings.remove(from);
+        if (ownSiblings != null) {
+            siblings.put(to, ownSiblings);
+            for (UUID sibling : ownSiblings) {
+                Set<UUID> other = siblings.get(sibling);
+                if (other != null && other.remove(from)) {
+                    other.add(to);
+                }
+            }
+        }
+        java.util.List<String> ownOrigins = origins.remove(from);
+        if (ownOrigins != null) {
+            origins.put(to, ownOrigins);
+        }
+    }
+
     // ---- laden (zonder controles) ----
 
     public void loadParent(UUID parent, UUID child) {

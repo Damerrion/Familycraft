@@ -259,6 +259,9 @@ public class FamilyManager {
         if (family.isOwner(target)) {
             throw new FamilyException("kick-self");
         }
+        if (isDeceased(target)) {
+            throw new FamilyException("deceased-kick");
+        }
         family.removeMember(target);
         byMember.remove(target);
     }
@@ -303,6 +306,9 @@ public class FamilyManager {
         requireOwner(family, actor, bypass);
         if (!family.isMember(target)) {
             throw new FamilyException("rank-not-member");
+        }
+        if (isDeceased(target)) {
+            throw new FamilyException("deceased-no-rank");
         }
         FamilyRank current = family.getRank(target);
         if (current == rank) {
@@ -563,10 +569,13 @@ public class FamilyManager {
         if (genealogy.isBloodRelated(from, to)) {
             throw new FamilyException("marriage-related");
         }
+        if (isDeceased(from) || isDeceased(to)) {
+            throw new FamilyException("deceased-cannot");
+        }
         if (byMember.get(from) == null || byMember.get(to) == null) {
             throw new FamilyException("engage-no-family");
         }
-        if (genealogy.partnerOf(from) != null || genealogy.partnerOf(to) != null) {
+        if (livingPartner(from) != null || livingPartner(to) != null) {
             throw new FamilyException("marriage-already-married");
         }
         if (engagements.containsKey(from) || engagements.containsKey(to)) {
@@ -685,13 +694,15 @@ public class FamilyManager {
         if (!bypass && !bf.isOwner(actor)) {
             throw new FamilyException("wedding-not-bride-head");
         }
-        if (genealogy.partnerOf(e.groom) != null || genealogy.partnerOf(e.bride) != null) {
+        if (livingPartner(e.groom) != null || livingPartner(e.bride) != null) {
             throw new FamilyException("marriage-already-married");
         }
         // de stamboom kan na de verloving nog veranderd zijn
         if (genealogy.isBloodRelated(e.groom, e.bride)) {
             throw new FamilyException("marriage-related");
         }
+        releaseDeceasedPartner(e.groom);
+        releaseDeceasedPartner(e.bride);
         MarriageType type = typeOf(e);
         Wedding wedding;
         switch (type) {
@@ -962,12 +973,14 @@ public class FamilyManager {
         if (groomFamily == brideFamily) {
             throw new FamilyException("marriage-same-family");
         }
-        if (genealogy.partnerOf(groom) != null || genealogy.partnerOf(bride) != null) {
+        if (livingPartner(groom) != null || livingPartner(bride) != null) {
             throw new FamilyException("marriage-already-married");
         }
         if (groomFamily.isOwner(groom) && findHeir(groomFamily, groom) == null) {
             throw new FamilyException("marriage-no-successor");
         }
+        releaseDeceasedPartner(groom);
+        releaseDeceasedPartner(bride);
         if (brideFamily.isOwner(bride) && findHeir(brideFamily, bride) == null) {
             throw new FamilyException("marriage-no-successor");
         }
@@ -1149,6 +1162,9 @@ public class FamilyManager {
         UUID partner = genealogy.partnerOf(player);
         if (partner == null) {
             throw new FamilyException("divorce-not-married");
+        }
+        if (isDeceased(partner)) {
+            throw new FamilyException("divorce-deceased");
         }
         divorceRequests.put(partner, player);
         divorceRequestExpiry.put(partner, System.currentTimeMillis() + proposalExpireMillis);
@@ -1492,7 +1508,182 @@ public class FamilyManager {
     }
 
     public boolean isFull(Family family) {
-        return maxMembers > 0 && family.getMembers().size() >= maxMembers;
+        return maxMembers > 0 && livingCount(family) >= maxMembers;
+    }
+
+    /** Aantal leden zonder de overleden karakters. */
+    public int livingCount(Family family) {
+        int count = 0;
+        for (UUID member : family.getMembers().keySet()) {
+            if (!isDeceased(member)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // ---- overleden roleplay-karakters ----
+
+    /** Een overleden karakter: blijft in de familie en de stamboom staan, de speler speelt verder. */
+    public static final class Deceased {
+        private final UUID player;
+        private final String name;
+        private final FamilyRank formerRank;
+        private final Instant diedAt;
+
+        public Deceased(UUID player, String name, FamilyRank formerRank, Instant diedAt) {
+            this.player = player;
+            this.name = name;
+            this.formerRank = formerRank;
+            this.diedAt = diedAt;
+        }
+
+        /** de speler die dit karakter speelde */
+        public UUID getPlayer() {
+            return player;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public FamilyRank getFormerRank() {
+            return formerRank;
+        }
+
+        public Instant getDiedAt() {
+            return diedAt;
+        }
+    }
+
+    /** Uitkomst van overlijden: het nieuwe "gedenk"-lid en (als het hoofd overleed) het nieuwe hoofd. */
+    public record Death(UUID memorial, UUID newHead) {
+    }
+
+    /** gedenk-uuid -> overleden karakter */
+    private final Map<UUID, Deceased> deceased = new ConcurrentHashMap<>();
+
+    public boolean isDeceased(UUID uuid) {
+        return uuid != null && deceased.containsKey(uuid);
+    }
+
+    public Deceased getDeceased(UUID uuid) {
+        return uuid == null ? null : deceased.get(uuid);
+    }
+
+    public Map<UUID, Deceased> getAllDeceased() {
+        return deceased;
+    }
+
+    public void loadDeceased(UUID memorial, Deceased entry) {
+        deceased.put(memorial, entry);
+    }
+
+    /** Partner die nog leeft (een overleden partner telt niet: weduwe/weduwnaar mag opnieuw trouwen). */
+    public UUID livingPartner(UUID player) {
+        UUID partner = genealogy.partnerOf(player);
+        return isDeceased(partner) ? null : partner;
+    }
+
+    /** Bij een nieuw huwelijk: de koppeling met een overleden partner verdwijnt (verder blijft alles staan). */
+    private void releaseDeceasedPartner(UUID player) {
+        UUID partner = genealogy.partnerOf(player);
+        if (isDeceased(partner)) {
+            genealogy.unlink(player, partner);
+        }
+    }
+
+    /**
+     * Het roleplay-karakter van {@code member} overlijdt. Er komt een gedenk-lid ({@code characterName}, ✝) in de
+     * familie dat al zijn relaties en afkomst overneemt; de speler blijft lid als Kind van het Huis zonder relaties
+     * (nieuw karakter). Was hij hoofd, dan neemt de Opvolger (of Reserve-erfgenaam) het over; was hij Opvolger, dan
+     * schuift de Reserve-erfgenaam door. Verlovingen van de speler vervallen.
+     */
+    public Death declareDeceased(Family family, UUID actor, boolean bypass, UUID member, String characterName)
+            throws FamilyException {
+        requireOwner(family, actor, bypass);
+        if (!family.isMember(member)) {
+            throw new FamilyException("rank-not-member");
+        }
+        if (isDeceased(member)) {
+            throw new FamilyException("deceased-already");
+        }
+        String name = characterName == null || characterName.isBlank() ? family.getMembers().get(member)
+                : characterName.replace('_', ' ').replaceAll("[&§]", "").trim();
+        if (name.isEmpty() || name.length() > 40) {
+            throw new FamilyException("deceased-name-invalid");
+        }
+        FamilyRank old = family.getRank(member);
+        UUID newHead = null;
+        if (family.isOwner(member)) {
+            newHead = findHeir(family, member);
+            if (newHead == null) {
+                throw new FamilyException("deceased-no-heir");
+            }
+            family.putRank(newHead, null);
+            family.setOwner(newHead);
+        } else if (old == FamilyRank.SUCCESSOR) {
+            for (UUID spare : family.membersWithRank(FamilyRank.SPARE_HEIR)) {
+                family.putRank(spare, FamilyRank.SUCCESSOR);
+                break;
+            }
+        }
+        family.putRank(member, FamilyRank.CHILD);
+
+        UUID memorial = UUID.nameUUIDFromBytes(("FenixCoreDeceased:" + member + ":" + System.nanoTime())
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        genealogy.transfer(member, memorial);
+        genealogy.setName(memorial, name);
+        family.addMember(memorial, name, FamilyRank.CHILD);
+        byMember.put(memorial, family);
+        deceased.put(memorial, new Deceased(member, name, old, Instant.now()));
+
+        Engagement e = engagements.get(member);
+        if (e != null) {
+            engagements.remove(e.groom);
+            engagements.remove(e.bride);
+        }
+        return new Death(memorial, newHead);
+    }
+
+    /**
+     * Vergissing terugdraaien: het karakter leeft weer. De speler moet nog in dezelfde familie zitten en mag nog geen
+     * nieuwe relaties hebben; hij krijgt zijn oude rang terug als die vrij is (Familiehoofd niet: dat gaat via rang
+     * geven). @return de speler
+     */
+    public UUID revive(Family family, UUID actor, boolean bypass, UUID memorial) throws FamilyException {
+        requireOwner(family, actor, bypass);
+        Deceased d = deceased.get(memorial);
+        if (d == null || !family.isMember(memorial)) {
+            throw new FamilyException("deceased-not-found");
+        }
+        if (!family.isMember(d.getPlayer())) {
+            throw new FamilyException("deceased-revive-gone");
+        }
+        genealogy.transfer(memorial, d.getPlayer());
+        family.removeMember(memorial);
+        byMember.remove(memorial);
+        deceased.remove(memorial);
+        genealogy.forget(memorial);
+        FamilyRank rank = d.getFormerRank();
+        int max = rankLimits.getOrDefault(rank, 0);
+        if (rank != null && rank != FamilyRank.HEAD && !family.isOwner(d.getPlayer())
+                && (max <= 0 || family.membersWithRank(rank).size() < max)) {
+            family.putRank(d.getPlayer(), rank);
+        }
+        return d.getPlayer();
+    }
+
+    /** Gedenk-lid helemaal weghalen (met zijn relaties). */
+    public void removeDeceased(Family family, UUID actor, boolean bypass, UUID memorial) throws FamilyException {
+        requireOwner(family, actor, bypass);
+        if (!isDeceased(memorial) || !family.isMember(memorial)) {
+            throw new FamilyException("deceased-not-found");
+        }
+        family.removeMember(memorial);
+        byMember.remove(memorial);
+        deceased.remove(memorial);
+        genealogy.forget(memorial);
     }
 
     public int getMaxNameLength() {

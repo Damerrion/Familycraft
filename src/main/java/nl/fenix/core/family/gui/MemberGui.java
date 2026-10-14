@@ -30,11 +30,12 @@ public final class MemberGui extends Gui {
         this.member = member;
         String name = service.nameOf(member);
 
-        set(4, GuiItems.head(member, "&f" + name, Lore.member(service, family, member)));
+        boolean deceased = service.manager().isDeceased(member);
+        set(4, Lore.icon(service, family, member, "&f" + name, Lore.member(service, family, member)));
 
-        // rangen
+        // rangen (een overleden karakter heeft geen rang meer)
         FamilyRank current = family.getRank(member);
-        FamilyRank[] ranks = FamilyRank.values();
+        FamilyRank[] ranks = deceased ? new FamilyRank[0] : FamilyRank.values();
         for (int i = 0; i < ranks.length; i++) {
             FamilyRank rank = ranks[i];
             boolean head = rank == FamilyRank.HEAD;
@@ -73,7 +74,33 @@ public final class MemberGui extends Gui {
                         new java.util.ArrayList<>(service.manager().getGenealogy().relativesOf(member)), other ->
                         service.unlink(p(e), family, member, other)));
 
-        if (!family.isOwner(member)) {
+        if (deceased) {
+            // vergissing terugdraaien of de gedenkplaats weghalen
+            set(33, GuiItems.item(Material.TOTEM_OF_UNDYING, text("deceased-revive", "&aTerug tot leven"),
+                    List.of(text("deceased-revive-lore", "&7Shift-klik: het was een vergissing"))), e -> {
+                if (e.isShiftClick()) {
+                    run(e, p -> service.revive(p, family, member));
+                }
+            });
+            set(34, GuiItems.item(Material.LAVA_BUCKET, text("deceased-remove", "&cGedenkplaats weghalen"),
+                    List.of(text("deceased-remove-lore", "&7Shift-klik: %player% en zijn relaties verdwijnen")
+                            .replace("%player%", name))), e -> {
+                if (e.isShiftClick()) {
+                    run(e, p -> service.removeDeceased(p, family, member));
+                }
+            });
+        } else {
+            // karakter laten overlijden: de karakternaam typ je in de chat
+            set(33, GuiItems.item(Material.WITHER_ROSE, text("deceased-declare", "&8&l✝ &7Overleden verklaren"),
+                    service.config().getStringList("gui.deceased-declare-lore").stream()
+                            .map(l -> l.replace("%player%", name)).toList()), e -> {
+                closeLater(p(e));
+                p(e).sendMessage(nl.fenix.core.family.gui.Text.legacy(service.message("deceased-suggest", "%player%", name))
+                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.suggestCommand("/family deceased " + name + " ")));
+            });
+        }
+
+        if (!family.isOwner(member) && !deceased) {
             set(34, GuiItems.item(Material.TNT, text("kick", "&cUit de familie zetten"),
                     List.of(text("kick-lore", "&7Shift-klik om %player% te kicken").replace("%player%", name))), e -> {
                 if (e.isShiftClick()) {

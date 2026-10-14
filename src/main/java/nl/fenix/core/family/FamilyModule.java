@@ -49,6 +49,7 @@ public final class FamilyModule {
     private DisplayNames displayNames;
     private FamilyHover hover;
     private FamilyCommand command;
+    private FamilyService service;
 
     public FamilyModule(FenixCore core) {
         this.core = core;
@@ -66,6 +67,11 @@ public final class FamilyModule {
 
     public FileConfiguration getConfig() {
         return config;
+    }
+
+    /** Acties, admin/dev mode en berichten (null zolang de module nog niet gestart is). */
+    public FamilyService service() {
+        return service;
     }
 
     private void loadConfig() {
@@ -181,6 +187,7 @@ public final class FamilyModule {
 
         command = new FamilyCommand(this, kc, manager, storage, economy, displayNames, info);
         FamilyService service = new FamilyService(this, kc, manager, storage, displayNames, info);
+        this.service = service;
         command.setService(service);
         core.getServer().getPluginManager().registerEvents(new GuiListener(), core);
         // "popup" voor het hoofd van een aftakking die nog een nieuwe naam moet kiezen

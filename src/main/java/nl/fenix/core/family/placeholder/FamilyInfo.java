@@ -114,7 +114,7 @@ public class FamilyInfo {
                 .replace("%kingdom%", kingdom == null ? noKingdom : kingdom)
                 .replace("%date%", date)
                 .replace("%owner%", owner == null ? "?" : owner)
-                .replace("%members%", String.valueOf(family.getMembers().size()))
+                .replace("%members%", String.valueOf(manager.livingCount(family)))
                 .replace("%lineage%", family.isBranch() ? String.join(" & ", family.getLineage())
                         : plugin.getConfig().getString("messages.no-lineage", "-")));
     }

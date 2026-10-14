@@ -481,4 +481,44 @@ public class FamilyTreeTest {
         assertEquals(FamilyRank.CONSORT, a.getRank(daughterB));
         assertEquals(FamilyRank.CHILD, a.getRank(sonA));
     }
+
+    @Test
+    public void deceasedCharacterKeepsTheTreeAndThePlayerStartsFresh() throws Exception {
+        manager.setRank(a, headA, false, heirA, FamilyRank.SUCCESSOR);
+        manager.link(a, headA, false, Genealogy.Relation.PARENT, headA, sonA);
+        Genealogy tree = manager.getGenealogy();
+        // het hoofd overlijdt: de Opvolger neemt het over, het karakter blijft als gedenk-lid ouder van sonA
+        FamilyManager.Death death = manager.declareDeceased(a, headA, false, headA, "Koning_Aldric");
+        UUID memorial = death.memorial();
+        assertEquals(heirA, death.newHead());
+        assertTrue(a.isOwner(heirA));
+        assertTrue(manager.isDeceased(memorial));
+        assertEquals("Koning Aldric", a.getMembers().get(memorial));
+        assertTrue(tree.parentsOf(sonA).contains(memorial));
+        assertTrue(tree.relativesOf(headA).isEmpty());
+        assertSame(a, manager.getFamily(headA)); // speler blijft lid, nieuw karakter
+        assertEquals(FamilyRank.CHILD, a.getRank(headA));
+        assertEquals(3, manager.livingCount(a));
+        assertKey("deceased-no-rank", () -> manager.setRank(a, heirA, false, memorial, FamilyRank.CONSORT));
+        assertKey("deceased-kick", () -> manager.kick(a, heirA, false, memorial));
+        assertKey("deceased-cannot", () -> manager.requestEngagement(memorial, headB));
+
+        // vergissing: terugdraaien
+        assertEquals(headA, manager.revive(a, heirA, false, memorial));
+        assertFalse(manager.isDeceased(memorial));
+        assertFalse(a.isMember(memorial));
+        assertTrue(tree.parentsOf(sonA).contains(headA));
+    }
+
+    @Test
+    public void widowCanRemarry() throws Exception {
+        manager.link(a, headA, false, Genealogy.Relation.PARTNER, sonA, heirA);
+        assertKey("marriage-already-married", () -> manager.requestEngagement(sonA, daughterB));
+        UUID memorial = manager.declareDeceased(a, headA, false, heirA, null).memorial();
+        assertEquals(memorial, manager.getGenealogy().partnerOf(sonA));
+        assertNull(manager.livingPartner(sonA));
+        assertKey("divorce-deceased", () -> manager.requestDivorce(sonA));
+        wed(sonA, daughterB, true, FamilyManager.MarriageOption.BRANCH);
+        assertEquals(daughterB, manager.getGenealogy().partnerOf(sonA));
+    }
 }

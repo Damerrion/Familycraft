@@ -363,6 +363,54 @@ public final class FamilyService {
         effects.sound(player, "effects.sounds.crest");
     }
 
+    // ------------------------------------------------------------------ overleden roleplay-karakters
+
+    /** Het karakter van een lid overlijdt (gedenk-lid in de stamboom, de speler speelt verder). */
+    public void declareDeceased(Player actor, Family family, UUID member, String characterName) throws FamilyException {
+        require(actor, "family.deceased");
+        boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
+        String playerName = nameOf(member);
+        FamilyManager.Death death = manager.declareDeceased(family, actor.getUniqueId(), bypass, member, characterName);
+        save();
+        refresh(member);
+        String character = family.getMembers().get(death.memorial());
+        String[] repl = {"%character%", character, "%player%", playerName, "%name%", family.getName()};
+        broadcast(family, null, "deceased-broadcast", repl);
+        if (!family.isMember(actor.getUniqueId())) {
+            send(actor, "deceased-broadcast", repl);
+        }
+        for (UUID uuid : family.getMembers().keySet()) {
+            Player online = Bukkit.getPlayer(uuid);
+            if (online != null && !uuid.equals(member)) {
+                effects.sound(online, "effects.sounds.deceased");
+            }
+        }
+        effects.play(Bukkit.getPlayer(member), FamilyEffects.Moment.DECEASED, repl);
+        if (death.newHead() != null) {
+            refresh(death.newHead());
+            notifyNewHead(family, death.newHead());
+        }
+    }
+
+    public void revive(Player actor, Family family, UUID memorial) throws FamilyException {
+        require(actor, "family.deceased");
+        boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
+        String character = nameOf(memorial);
+        UUID player = manager.revive(family, actor.getUniqueId(), bypass, memorial);
+        save();
+        refresh(player);
+        send(actor, "deceased-revived", "%character%", character, "%player%", nameOf(player));
+    }
+
+    public void removeDeceased(Player actor, Family family, UUID memorial) throws FamilyException {
+        require(actor, "family.deceased");
+        boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
+        String character = nameOf(memorial);
+        manager.removeDeceased(family, actor.getUniqueId(), bypass, memorial);
+        save();
+        send(actor, "deceased-removed", "%character%", character);
+    }
+
     // ------------------------------------------------------------------ verboden wapens (admin)
 
     /** Alleen in admin mode (of dev mode / console). */

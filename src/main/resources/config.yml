@@ -9,3 +9,17 @@
 modules:
   wands: true
   family: true
+
+# Kleine admin-website (alleen bekijken): admin- en dev-commando's, alle permissies, wie online admin/dev-rechten of
+# admin/dev mode heeft, families, overleden karakters en het archief. De link (met geheim token) krijg je in-game met
+# /fenixcore web (permissie fenixcore.web). Zet de poort open bij je host (bv. een extra poort/allocation).
+#   port            poort van de website
+#   bind            0.0.0.0 = bereikbaar van buitenaf, 127.0.0.1 = alleen op de server zelf
+#   public-address  adres in de link (bv. play.fenixkingdom.nl of het IP); leeg = server-ip uit server.properties
+#   token           geheim deel van de link; leeg = wordt automatisch gemaakt. /fenixcore web newtoken = nieuwe link
+web:
+  enabled: true
+  port: 8095
+  bind: 0.0.0.0
+  public-address: ''
+  token: ''

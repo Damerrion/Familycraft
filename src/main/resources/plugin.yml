@@ -7,7 +7,7 @@ softdepend: [KingdomCraft, LuckPerms, KingdomWands, ProtocolLib, Vault, KingdomW
 commands:
   fenixcore:
     description: FenixCore info en configs herladen
-    usage: /fenixcore reload <all|family|kwa>
+    usage: /fenixcore reload <all|family|kwa> | web [newtoken]
     aliases: [fenix]
   enlope:
     description: Iemand ten huwelijk vragen (verloving), daarna het trouwmenu
@@ -30,6 +30,9 @@ permissions:
   fenixcore.reload:
     description: /fenixcore reload (configs herladen)
     default: op
+  fenixcore.web:
+    description: /fenixcore web - link naar de admin-website
+    default: op
   family.*:
     description: Alle family-permissies
     default: op
@@ -44,6 +47,7 @@ permissions:
       family.rename: true
       family.marriage: true
       family.divorce: true
+      family.deceased: true
       family.create: true
       family.dev: true
       family.admin: true
@@ -67,6 +71,9 @@ permissions:
     default: true
   family.crest:
     description: Familiewapen veranderen (als hoofd)
+    default: true
+  family.deceased:
+    description: Roleplay-karakter van een lid overleden verklaren (als hoofd)
     default: true
   family.rename:
     description: Nieuwe naam kiezen als de familie dat moet (als hoofd)

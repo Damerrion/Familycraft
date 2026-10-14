@@ -112,6 +112,15 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - "Epischer" (gebruiker): huizen-stijl in teksten (⚜ ♛ ❤ ⚔, alleen BMP-tekens: Minecraft toont geen emoji),
   `FamilyEffects` (titel + geluid + deeltjes per `Moment`, server-aankondiging bij gesticht/getrouwd, geluid bij het
   openen van een menu), `effects:` in family.yml. Oude teksten staan in `family-old-defaults.yml` v7.
+- Overleden roleplay-karakters (gebruiker koos "gedenkplaats"): `FamilyManager.declareDeceased` maakt een gedenk-lid
+  (UUID nameUUID "FenixCoreDeceased:<speler>:<nanos>", `deceased:` in families.yml) dat via `Genealogy.transfer` alle
+  relaties + afkomst van de speler overneemt; de speler blijft lid (Kind, zonder relaties). Hoofd -> erfgenaam neemt
+  over; Opvolger -> Reserve schuift door. Gedenk-leden: geen rang, niet kicken/verloven, tellen niet mee
+  (`livingCount`), overleden partner telt niet als getrouwd (`livingPartner`, koppeling vervalt bij nieuw huwelijk).
+  `revive` (terug, oude rang als vrij) en `removeDeceased`. GUI: `Lore.icon` (skelet-schedel, ✝), lid-menu-knoppen.
+- Admin-website (gebruiker koos "in de plugin"): `nl.fenix.core.web.AdminWeb`, JDK `HttpServer`, alleen GET, token
+  uit config.yml `web.token` (constant-time vergelijken), pagina op de main thread (`callSyncMethod`), alles
+  ge-escaped, CSP/no-referrer. `/fenixcore web [newtoken]` (`fenixcore.web`).
 - `family-old-defaults.yml`: secties v1, v2, ... met oude standaardwaarden per versie (nieuwe versie onderaan erbij).
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").

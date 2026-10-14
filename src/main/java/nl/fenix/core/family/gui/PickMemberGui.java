@@ -35,7 +35,7 @@ public final class PickMemberGui extends Gui {
                 .thenComparing(u -> service.nameOf(u).toLowerCase()));
         for (int i = 0; i < 45 && i < members.size(); i++) {
             UUID member = members.get(i);
-            set(i, GuiItems.head(member, "&f" + service.nameOf(member), Lore.member(service, family, member)),
+            set(i, Lore.icon(service, family, member, "&f" + service.nameOf(member), Lore.member(service, family, member)),
                     e -> onPick.accept(member));
         }
         if (members.isEmpty()) {
