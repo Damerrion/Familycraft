@@ -186,6 +186,12 @@ public final class FamilyModule {
             enlope.setExecutor(executor);
             enlope.setTabCompleter(executor);
         }
+        PluginCommand divorce = core.getCommand("divorce");
+        if (divorce != null) {
+            nl.fenix.core.family.command.DivorceCommand executor = new nl.fenix.core.family.command.DivorceCommand(service);
+            divorce.setExecutor(executor);
+            divorce.setTabCompleter(executor);
+        }
         PluginCommand family = core.getCommand("family");
         if (family != null) {
             family.setExecutor(command);

@@ -69,6 +69,32 @@ Elke spell heeft een eigen switch-toon bij het selecteren (`select-sound` per sp
 Spells raken iedereen behalve het `kingdom` van de wand en de bondgenoten daarvan. De caster raakt zichzelf nooit
 (behalve in dev mode).
 
+### Scheiden
+`/divorce` vraagt je partner om te scheiden; die klikt **[Scheiden]** (of `/divorce accept|deny`). Alleen de
+partner-koppeling verdwijnt, de families blijven zoals ze zijn; een aangetrouwde rang (Gemaal, Gemaal van de
+Erfgenaam) wordt Kind van het Huis. Admin mode: `/divorce force <speler>`.
+
+### Rechten (LuckPerms) en admin mode
+Een familiehoofd bewerkt alleen zijn **eigen** familie (rangen, stamboom, wapen, naam). Ook ops/staff zijn gewone
+spelers, tot ze **admin mode** aanzetten met `/family force` (permissie `family.admin`); dan kunnen ze elke familie
+bewerken, kicken/opheffen en huwelijken forceren. Admin mode staat na een herstart uit.
+
+Elke functie heeft een eigen permissie, zodat je alles in LuckPerms aan/uit kunt zetten:
+| Permissie | Standaard | Wat |
+|---|---|---|
+| `family.use` | iedereen | `/family` (invite, accept, cancel, kick, leave, disband, help) |
+| `family.info` | iedereen | `/family check`, `info`, `members` |
+| `family.list` | iedereen | `/family list` |
+| `family.editor` | iedereen | `/family editor` openen |
+| `family.rank` / `family.tree` / `family.crest` / `family.rename` | iedereen | rangen / stamboom / wapen / naam (als hoofd) |
+| `family.marriage` / `family.divorce` | iedereen | `/enlope` + trouwmenu / `/divorce` |
+| `family.create` | op | een familie maken (gekocht) |
+| `family.dev` | op | `/family dev` |
+| `family.admin` | op | `/family force` (admin mode) |
+| `family.*` | op | alles |
+
+Voorbeeld: `lp group default permission set family.marriage false` zet trouwen uit voor gewone spelers.
+
 ### Dev mode (alleen testen)
 `/kwa dev` zet dev mode aan of uit voor **jouw** spells (na een herstart, of als je `kwa.dev` kwijtraakt, staat het uit).
 Met `ignore-kingdom: true` raken je spells dan ook spelers van je eigen kingdom, bondgenoten en creative (standaard uit).
@@ -123,6 +149,7 @@ als iemand naar een aftakking gaat.
 1. **Verloven:** `/enlope <speler>`; de ander klikt **[Ja]** (of `/enlope accept|deny`). Verbreken: `/enlope cancel`.
 2. **Trouwmenu** (`/family marriage`, of `/enlope` zonder speler): het paar wisselt wie **bruidegom** en wie **bruid**
    is, en wie de **keuze** (A) heeft. A kiest daar ook hoe de lijnen verder gaan.
+   Het menu gaat bij de verloving open bij zowel de bruidegom als de bruid.
 3. Het **hoofd van de familie van de bruid** opent het menu (klikbare melding of `/family marriage <bruid>`) en klikt
    **Start de trouwerij**.
 

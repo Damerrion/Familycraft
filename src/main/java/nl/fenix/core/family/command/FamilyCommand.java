@@ -37,7 +37,18 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
             "accept", "cancel", "create", "disband", "check", "invite", "kick", "leave", "members", "info", "help",
-            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "dev");
+            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "dev", "force");
+
+    /** Rechten per functie (LuckPerms). Niet in de lijst = family.use. */
+    private static final Map<String, String> PERMISSIONS = Map.ofEntries(
+            Map.entry("check", "family.info"), Map.entry("info", "family.info"), Map.entry("members", "family.info"),
+            Map.entry("list", "family.list"), Map.entry("overzicht", "family.list"),
+            Map.entry("editor", "family.editor"),
+            Map.entry("rank", "family.rank"),
+            Map.entry("tree", "family.tree"), Map.entry("stamboom", "family.tree"),
+            Map.entry("marriage", "family.marriage"), Map.entry("huwelijk", "family.marriage"),
+            Map.entry("rename", "family.rename"),
+            Map.entry("crest", "family.crest"));
 
     private final FamilyModule plugin;
     private final KingdomCraft kc;
@@ -83,7 +94,15 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         String[] rest = args.length == 0 ? args : Arrays.copyOfRange(args, 1, args.length);
 
         try {
+            String permission = PERMISSIONS.get(sub);
+            if (permission != null) {
+                service.require(sender, permission);
+            }
             switch (sub) {
+                case "force":
+                case "admin":
+                    force(player(sender), rest);
+                    break;
                 case "create":
                     create(player(sender), rest);
                     break;
@@ -483,6 +502,17 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         service.openWedding(p, engagement);
     }
 
+    /** /family force [on|off]: admin mode voor staff (family.admin), alleen dan andere families bewerken. */
+    private void force(Player p, String[] args) throws FamilyException {
+        boolean on = args.length == 0 ? !service.isAdminMode(p)
+                : args[0].equalsIgnoreCase("on") || args[0].equalsIgnoreCase("aan");
+        if (on && !p.hasPermission("family.admin")) {
+            throw new FamilyException("no-permission");
+        }
+        service.setAdminMode(p, on);
+        send(p, on ? "admin-on" : "admin-off");
+    }
+
     /**
      * /family dev [on|off] | fake &lt;naam&gt; [tag] | fakefamily &lt;hoofd&gt; &lt;naam&gt; &lt;tag&gt; | enlope &lt;a&gt; &lt;b&gt; | list | clear.
      * Dev mode = alles mogen wat een hoofd/admin mag, en nep-spelers om alleen te testen.
@@ -709,6 +739,8 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     return filter(Arrays.asList("give", "list"), args[1]);
                 case "dev":
                     return filter(Arrays.asList("on", "off", "fake", "fakefamily", "enlope", "list", "clear"), args[1]);
+                case "force":
+                    return filter(Arrays.asList("on", "off"), args[1]);
                 case "tree":
                     return filter(Arrays.asList("link", "unlink"), args[1]);
                 case "marriage":

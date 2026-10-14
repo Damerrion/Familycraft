@@ -159,6 +159,21 @@ public class FamilyTreeTest {
     }
 
     @Test
+    public void divorceNeedsBothPartners() throws Exception {
+        assertKey("divorce-not-married", () -> manager.requestDivorce(sonA));
+        Family branch = wed(sonA, daughterB, true, FamilyManager.MarriageOption.BRANCH).getFamily();
+        assertEquals(FamilyRank.CONSORT, branch.getRank(daughterB));
+        assertKey("divorce-no-request", () -> manager.acceptDivorce(daughterB));
+        assertEquals(daughterB, manager.requestDivorce(sonA));
+        assertKey("divorce-no-request", () -> manager.acceptDivorce(sonA)); // de aanvrager zelf kan niet bevestigen
+        assertEquals(sonA, manager.acceptDivorce(daughterB));
+        assertNull(manager.getGenealogy().partnerOf(sonA));
+        assertEquals(FamilyRank.CHILD, branch.getRank(daughterB)); // Gemaal -> Kind van het Huis
+        assertSame(branch, manager.getFamily(daughterB)); // families blijven zoals ze zijn
+        assertTrue(branch.isOwner(sonA));
+    }
+
+    @Test
     public void dutchRankNames() {
         assertEquals(FamilyRank.SUCCESSOR, FamilyRank.parse("opvolger"));
         assertEquals(FamilyRank.CHILD, FamilyRank.parse("Kind van het Huis"));

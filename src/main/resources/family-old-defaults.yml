@@ -65,3 +65,13 @@ v4:
     - '&6/family dev list &7/ &6clear &7- nep-spelers bekijken / alles opruimen'
     - '&7In dev mode mag je alles wat een hoofd/admin mag: editor van elke familie,'
     - '&7rangen, stamboom, rollen en keuze in het trouwmenu, trouwerij starten.'
+v5:
+  messages:
+    help-extra:
+    - '&6/family list [kingdom|all] &7- Families van je kingdom, een kingdom of alle'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/enlope <speler> &7- Iemand ten huwelijk vragen (verloving)'
+    - '&6/family marriage &7- Trouwmenu (rollen, keuze, starten)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'

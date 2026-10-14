@@ -152,9 +152,47 @@ public final class FamilyService {
 
     // ------------------------------------------------------------------ rechten / spelers zoeken
 
-    /** Admin, of dev mode aan: alles mogen wat een hoofd mag (andere families, trouwerij starten, ...). */
+    /**
+     * Admin mode (/family force, staff met family.admin) of dev mode aan: alles mogen wat een hoofd mag in elke
+     * familie. Zonder admin mode is ook een op/staflid gewoon een speler: een hoofd bewerkt alleen zijn eigen familie.
+     * De console geldt altijd als admin.
+     */
     public boolean isAdmin(CommandSender sender) {
-        return sender.hasPermission("family.admin") || (sender instanceof Player p && isDev(p));
+        if (!(sender instanceof Player p)) {
+            return true;
+        }
+        return isAdminMode(p) || isDev(p);
+    }
+
+    /** Spelers met admin mode aan (/family force). Alleen in het geheugen. */
+    private final java.util.Set<UUID> admins = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    public boolean isAdminMode(Player player) {
+        if (!admins.contains(player.getUniqueId())) {
+            return false;
+        }
+        if (!player.hasPermission("family.admin")) {
+            admins.remove(player.getUniqueId());
+            return false;
+        }
+        return true;
+    }
+
+    public void setAdminMode(Player player, boolean on) {
+        if (on) {
+            admins.add(player.getUniqueId());
+        } else {
+            admins.remove(player.getUniqueId());
+        }
+    }
+
+    /**
+     * Rechten per functie (LuckPerms): {@code family.<functie>}. Admin/dev mode slaat de controle over.
+     */
+    public void require(CommandSender sender, String permission) throws FamilyException {
+        if (!sender.hasPermission(permission) && !isAdmin(sender)) {
+            throw new FamilyException("no-permission");
+        }
     }
 
     // ------------------------------------------------------------------ dev mode
@@ -182,7 +220,7 @@ public final class FamilyService {
         }
     }
 
-    /** Hoofd van de familie, of admin. */
+    /** Hoofd van deze familie (alleen de eigen familie), of admin/dev mode. */
     public boolean canEdit(Player player, Family family) {
         return family.isOwner(player.getUniqueId()) || isAdmin(player);
     }
@@ -239,6 +277,7 @@ public final class FamilyService {
     // ------------------------------------------------------------------ acties
 
     public void setRank(Player actor, Family family, UUID target, FamilyRank rank) throws FamilyException {
+        require(actor, "family.rank");
         boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
         UUID oldHead = family.getOwner();
         manager.setRank(family, actor.getUniqueId(), bypass, target, rank);
@@ -254,6 +293,7 @@ public final class FamilyService {
     }
 
     public void link(Player actor, Family family, Genealogy.Relation relation, UUID a, UUID b) throws FamilyException {
+        require(actor, "family.tree");
         boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
         manager.link(family, actor.getUniqueId(), bypass, relation, a, b);
         save();
@@ -262,6 +302,7 @@ public final class FamilyService {
     }
 
     public void unlink(Player actor, Family family, UUID a, UUID b) throws FamilyException {
+        require(actor, "family.tree");
         boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
         manager.unlink(family, actor.getUniqueId(), bypass, a, b);
         save();
@@ -269,12 +310,14 @@ public final class FamilyService {
     }
 
     public void unlinkSelf(Player actor, UUID other) throws FamilyException {
+        require(actor, "family.tree");
         manager.unlinkSelf(actor.getUniqueId(), other);
         save();
         send(actor, "tree-unlinked", "%a%", actor.getName(), "%b%", nameOf(other));
     }
 
     public void setCrest(Player actor, Family family, ItemStack banner) throws FamilyException {
+        require(actor, "family.crest");
         if (!GuiItems.isBanner(banner)) {
             throw new FamilyException("crest-no-banner");
         }
@@ -285,6 +328,7 @@ public final class FamilyService {
     }
 
     public void rename(Player actor, Family family, String rawName, String rawTag) throws FamilyException {
+        require(actor, "family.rename");
         boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
         String oldName = family.getName();
         manager.rename(family, actor.getUniqueId(), bypass, rawName, rawTag);
@@ -297,6 +341,7 @@ public final class FamilyService {
 
     /** /enlope &lt;speler&gt;: iemand ten huwelijk vragen. */
     public void engage(Player from, UUID to) throws FamilyException {
+        require(from, "family.marriage");
         manager.requestEngagement(from.getUniqueId(), to);
         send(from, "engage-sent", "%player%", nameOf(to));
         if (manager.isFake(to) && isDev(from)) {
@@ -304,7 +349,7 @@ public final class FamilyService {
             FamilyManager.Engagement e = manager.acceptEngagement(to);
             save();
             send(from, "dev-engaged", "%groom%", nameOf(e.getGroom()), "%bride%", nameOf(e.getBride()));
-            openWedding(from, e);
+            openWeddingForCouple(e);
             return;
         }
         Player target = Bukkit.getPlayer(to);
@@ -325,7 +370,73 @@ public final class FamilyService {
             }
         }
         notifyBrideHead(e);
-        openWedding(player, e);
+        openWeddingForCouple(e);
+    }
+
+    /** Trouwmenu openen bij de bruidegom en de bruid (wie online is). */
+    public void openWeddingForCouple(FamilyManager.Engagement e) {
+        for (UUID uuid : new UUID[]{e.getGroom(), e.getBride()}) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                openWedding(p, e);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ scheiding
+
+    /** /divorce: vraag je partner om te scheiden; die moet bevestigen. */
+    public void requestDivorce(Player player) throws FamilyException {
+        require(player, "family.divorce");
+        UUID partner = manager.requestDivorce(player.getUniqueId());
+        send(player, "divorce-sent", "%player%", nameOf(partner));
+        if (manager.isFake(partner) && isDev(player)) {
+            // dev mode: een nep-partner gaat meteen akkoord
+            manager.acceptDivorce(partner);
+            divorced(player.getUniqueId(), partner);
+            return;
+        }
+        Player target = Bukkit.getPlayer(partner);
+        if (target != null) {
+            sendWithButtons(target, "divorce-request", new String[]{"%player%", player.getName()},
+                    "divorce-button-accept", "/divorce accept", "divorce-button-deny", "/divorce deny");
+        }
+    }
+
+    public void acceptDivorce(Player player) throws FamilyException {
+        UUID ex = manager.acceptDivorce(player.getUniqueId());
+        divorced(player.getUniqueId(), ex);
+    }
+
+    public void denyDivorce(Player player) throws FamilyException {
+        UUID from = manager.denyDivorce(player.getUniqueId());
+        send(player, "divorce-denied");
+        Player requester = Bukkit.getPlayer(from);
+        if (requester != null) {
+            send(requester, "divorce-denied-other", "%player%", player.getName());
+        }
+    }
+
+    /** Admin: twee spelers direct scheiden. */
+    public void forceDivorce(UUID a) throws FamilyException {
+        UUID partner = manager.getGenealogy().partnerOf(a);
+        if (partner == null) {
+            throw new FamilyException("divorce-not-married");
+        }
+        manager.divorce(a, partner);
+        divorced(a, partner);
+    }
+
+    private void divorced(UUID a, UUID b) {
+        save();
+        refresh(a);
+        refresh(b);
+        for (UUID uuid : new UUID[]{a, b}) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                send(p, "divorce-done", "%a%", nameOf(a), "%b%", nameOf(b));
+            }
+        }
     }
 
     public void denyEngagement(Player player) throws FamilyException {

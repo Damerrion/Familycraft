@@ -13,6 +13,10 @@ commands:
     description: Iemand ten huwelijk vragen (verloving), daarna het trouwmenu
     usage: /enlope <speler>|accept|deny|cancel
     aliases: [elope, verloven]
+  divorce:
+    description: Scheiden van je partner (de partner moet bevestigen)
+    usage: /divorce [accept|deny]
+    aliases: [scheiden]
   kwa:
     description: Wands hoofdcommando (zoals /kw)
     usage: /kwa [get|bind|unbind|spells|effect|create|info|help|dev|check|reload]
@@ -26,17 +30,61 @@ permissions:
   fenixcore.reload:
     description: /fenixcore reload (configs herladen)
     default: op
+  family.*:
+    description: Alle family-permissies
+    default: op
+    children:
+      family.use: true
+      family.info: true
+      family.list: true
+      family.editor: true
+      family.rank: true
+      family.tree: true
+      family.crest: true
+      family.rename: true
+      family.marriage: true
+      family.divorce: true
+      family.create: true
+      family.dev: true
+      family.admin: true
   family.use:
-    description: /family gebruiken
+    description: /family gebruiken (invite, accept, cancel, kick, leave, disband, help)
+    default: true
+  family.info:
+    description: /family check, info, members
+    default: true
+  family.list:
+    description: /family list (overzicht van families)
+    default: true
+  family.editor:
+    description: /family editor openen (bewerken kan alleen het hoofd van de eigen familie)
+    default: true
+  family.rank:
+    description: Rangen geven in je eigen familie (als hoofd)
+    default: true
+  family.tree:
+    description: Stamboom koppelen/ontkoppelen (als hoofd), eigen relaties ontkoppelen
+    default: true
+  family.crest:
+    description: Familiewapen veranderen (als hoofd)
+    default: true
+  family.rename:
+    description: Nieuwe naam kiezen als de familie dat moet (als hoofd)
+    default: true
+  family.marriage:
+    description: /enlope en het trouwmenu (/family marriage)
+    default: true
+  family.divorce:
+    description: /divorce
     default: true
   family.create:
     description: Een familie maken (geef dit aan spelers die er een gekocht hebben)
     default: op
   family.dev:
-    description: /family dev - dev mode om alles alleen te testen (nep-spelers, alles mogen wat een hoofd mag)
+    description: /family dev - dev mode om alles alleen te testen
     default: op
   family.admin:
-    description: Disband / kick in elke familie en gratis familie maken
+    description: /family force - admin mode voor staff (andere families bewerken, trouwerij forceren, ...)
     default: op
   # ---- wands (zelfde opzet als KingdomWands Premium: kingdomwands.* -> kwa.*)
   kwa.*:

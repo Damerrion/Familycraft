@@ -85,6 +85,15 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - Dev mode family (gebruiker: "alle functies testen"): `/family dev` (`family.dev`, per speler, in geheugen) = admin-
   bypass overal (`FamilyService.isAdmin`) + nep-spelers (`FamilyManager.addFake/createFakeFamily/forceEngagement/
   clearFakes`, UUID = nameUUID "FenixCoreFake:<naam>", bewaard als `fakes:` in families.yml).
+- Admin mode (gebruiker): `/family force [on|off]` (`family.admin`, per speler, in geheugen). `FamilyService.isAdmin`
+  = admin mode of dev mode (console altijd); **zonder admin mode is ook een op gewoon een speler**: een hoofd
+  bewerkt alleen de eigen familie (rangen, stamboom, wapen, naam).
+- Rechten per functie voor LuckPerms (gebruiker koos "alleen permissies", geen LP-API): `family.use/info/list/editor/
+  rank/tree/crest/rename/marriage/divorce` (default true), `family.create/dev/admin` (op), `family.*`.
+  `FamilyService.require(sender, perm)` (admin/dev slaat over), `FamilyCommand.PERMISSIONS` per subcommando.
+- `/divorce` (gebruiker): partner vraagt, de ander bevestigt (`/divorce accept|deny`); alleen de partner-koppeling
+  weg, families blijven, Gemaal/Gemaal van de Erfgenaam -> Kind van het Huis. Admin: `/divorce force <speler>`.
+- Trouwmenu gaat na de verloving open bij bruidegom én bruid (`openWeddingForCouple`).
 - `family-old-defaults.yml`: secties v1, v2, ... met oude standaardwaarden per versie (nieuwe versie onderaan erbij).
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").

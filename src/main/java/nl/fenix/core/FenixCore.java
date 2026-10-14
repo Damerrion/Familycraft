@@ -169,6 +169,7 @@ public final class FenixCore extends JavaPlugin {
     private void disabledCommand(String name, String module) {
         if (name.equals("family")) {
             disabledCommand("enlope", module);
+            disabledCommand("divorce", module);
         }
         PluginCommand command = getCommand(name);
         if (command != null) {

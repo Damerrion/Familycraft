@@ -1089,6 +1089,78 @@ public class FamilyManager {
         return parts;
     }
 
+    // ---- scheiding ----
+
+    /** scheidingsverzoek: ontvanger (de partner) -> aanvrager */
+    private final Map<UUID, UUID> divorceRequests = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> divorceRequestExpiry = new ConcurrentHashMap<>();
+
+    /** /divorce: vraag je partner om te scheiden. @return de partner */
+    public UUID requestDivorce(UUID player) throws FamilyException {
+        UUID partner = genealogy.partnerOf(player);
+        if (partner == null) {
+            throw new FamilyException("divorce-not-married");
+        }
+        divorceRequests.put(partner, player);
+        divorceRequestExpiry.put(partner, System.currentTimeMillis() + proposalExpireMillis);
+        return partner;
+    }
+
+    /** Wie vraagt deze speler om te scheiden (niet verlopen), of null. */
+    public UUID getDivorceRequest(UUID player) {
+        Long until = divorceRequestExpiry.get(player);
+        if (until == null || until < System.currentTimeMillis()) {
+            divorceRequests.remove(player);
+            divorceRequestExpiry.remove(player);
+            return null;
+        }
+        UUID from = divorceRequests.get(player);
+        // inmiddels al gescheiden of een andere partner
+        return from != null && from.equals(genealogy.partnerOf(player)) ? from : null;
+    }
+
+    /** Akkoord: de partner-koppeling verdwijnt. @return de ex-partner */
+    public UUID acceptDivorce(UUID player) throws FamilyException {
+        UUID from = getDivorceRequest(player);
+        if (from == null) {
+            throw new FamilyException("divorce-no-request");
+        }
+        divorceRequests.remove(player);
+        divorceRequestExpiry.remove(player);
+        divorce(player, from);
+        return from;
+    }
+
+    public UUID denyDivorce(UUID player) throws FamilyException {
+        UUID from = getDivorceRequest(player);
+        if (from == null) {
+            throw new FamilyException("divorce-no-request");
+        }
+        divorceRequests.remove(player);
+        divorceRequestExpiry.remove(player);
+        return from;
+    }
+
+    /**
+     * Scheiden: alleen de partner-koppeling verdwijnt; de families blijven zoals ze zijn. Een aangetrouwde rang
+     * (Gemaal, Gemaal van de Erfgenaam) wordt Kind van het Huis.
+     */
+    public void divorce(UUID a, UUID b) throws FamilyException {
+        if (!b.equals(genealogy.partnerOf(a))) {
+            throw new FamilyException("divorce-not-married");
+        }
+        genealogy.unlink(a, b);
+        for (UUID player : new UUID[]{a, b}) {
+            Family family = byMember.get(player);
+            if (family != null) {
+                FamilyRank rank = family.getRank(player);
+                if (rank == FamilyRank.CONSORT || rank == FamilyRank.HEIRS_CONSORT) {
+                    family.putRank(player, FamilyRank.CHILD);
+                }
+            }
+        }
+    }
+
     // ---- dev mode: nep-spelers ----
 
     /** Nep-spelers (dev mode), zodat je alles alleen kunt testen. Worden bewaard tot /family dev clear. */
