@@ -45,6 +45,7 @@ public abstract class Gui implements InventoryHolder {
 
     public void open(Player player) {
         player.openInventory(inventory);
+        service.effects().sound(player, "effects.sounds.gui-open");
     }
 
     /** Een ander menu openen vanuit een klik: pas de volgende tick (niet tijdens het klik-event). */

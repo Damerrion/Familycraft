@@ -458,4 +458,27 @@ public class FamilyTreeTest {
         manager.validateTag("ABC");
         assertKey("name-banned", () -> manager.create(UUID.randomUUID(), "X", "Na_zi", "NZ"));
     }
+
+    @Test
+    public void onlyOneOfEachSpecialRank() throws Exception {
+        for (FamilyRank rank : new FamilyRank[]{FamilyRank.SUCCESSOR, FamilyRank.SPARE_HEIR, FamilyRank.CONSORT,
+                FamilyRank.HEIRS_CONSORT}) {
+            UUID first = UUID.randomUUID();
+            UUID second = UUID.randomUUID();
+            join(a, headA, first, "First" + rank.ordinal());
+            join(a, headA, second, "Second" + rank.ordinal());
+            manager.setRank(a, headA, false, first, rank);
+            assertKey("rank-full", () -> manager.setRank(a, headA, false, second, rank));
+        }
+    }
+
+    @Test
+    public void newConsortReplacesAnOldOne() throws Exception {
+        // oud Gemaal (bv. van een vorig hoofd) wordt Kind van het Huis als het hoofd trouwt
+        manager.setRank(a, headA, false, sonA, FamilyRank.CONSORT);
+        manager.setRank(b, headB, false, daughterB, FamilyRank.SUCCESSOR);
+        wed(headA, daughterB, true, null);
+        assertEquals(FamilyRank.CONSORT, a.getRank(daughterB));
+        assertEquals(FamilyRank.CHILD, a.getRank(sonA));
+    }
 }

@@ -65,8 +65,11 @@ public class FamilyManager {
         this.maxTagLength = maxTagLength;
         this.maxMembers = maxMembers;
         this.inviteExpireMillis = inviteExpireSeconds * 1000L;
+        // per familie maar één Opvolger, Reserve-erfgenaam, Gemaal en Gemaal van de Erfgenaam (gebruiker)
         rankLimits.put(FamilyRank.SUCCESSOR, 1);
         rankLimits.put(FamilyRank.SPARE_HEIR, 1);
+        rankLimits.put(FamilyRank.CONSORT, 1);
+        rankLimits.put(FamilyRank.HEIRS_CONSORT, 1);
     }
 
     /** Instellingen opnieuw zetten (/fenixcore reload). */
@@ -263,6 +266,11 @@ public class FamilyManager {
     /** Opheffen (/family disband): eerst in het archief, zodat een admin het kan terugzetten. */
     public void disband(Family family) {
         archive(family, "disband");
+        remove(family);
+    }
+
+    /** Net gemaakte familie terugdraaien (bv. betaling mislukt), zonder archief. */
+    public void discard(Family family) {
         remove(family);
     }
 
@@ -781,15 +789,34 @@ public class FamilyManager {
         return heads;
     }
 
-    /** Rang van de aangetrouwde partner: Gemaal bij een hoofd, Gemaal van de Erfgenaam bij een erfgenaam. */
+    /**
+     * Rang van de aangetrouwde partner: Gemaal bij het hoofd, Gemaal van de Erfgenaam bij de Opvolger, anders Kind
+     * van het Huis (er is er per familie maar één van elk).
+     */
     private static FamilyRank spouseRank(FamilyRank partnerRank) {
         if (partnerRank == FamilyRank.HEAD) {
             return FamilyRank.CONSORT;
         }
-        if (partnerRank == FamilyRank.SUCCESSOR || partnerRank == FamilyRank.SPARE_HEIR) {
+        if (partnerRank == FamilyRank.SUCCESSOR) {
             return FamilyRank.HEIRS_CONSORT;
         }
         return FamilyRank.CHILD;
+    }
+
+    /**
+     * Een huwelijk geeft {@code player} een rang met een maximum (Gemaal, ...) die al vol zit: de huidige houders
+     * (bv. de partner van een vorig hoofd) worden Kind van het Huis. De nieuwe partner gaat voor.
+     */
+    private void makeRoom(Family family, UUID player, FamilyRank rank) {
+        int max = rankLimits.getOrDefault(rank, 0);
+        if (rank == FamilyRank.HEAD || rank == FamilyRank.CHILD || max <= 0) {
+            return;
+        }
+        List<UUID> holders = family.membersWithRank(rank);
+        holders.remove(player);
+        for (int i = 0; i < holders.size() && holders.size() - i >= max; i++) {
+            family.putRank(holders.get(i), FamilyRank.CHILD);
+        }
     }
 
     /** Eén persoon gaat van familie {@code from} naar {@code to}. Was het de Opvolger: Reserve-erfgenaam schuift door. */
@@ -808,6 +835,7 @@ public class FamilyManager {
         }
         from.removeMember(player);
         genealogy.addOrigin(player, from.getName());
+        makeRoom(to, player, rank);
         to.addMember(player, name, rank);
         byMember.put(player, to);
         invites.remove(player);
@@ -829,8 +857,11 @@ public class FamilyManager {
             FamilyRank rank = brideFamily.getRank(member);
             if (member.equals(bride)) {
                 rank = FamilyRank.CONSORT;
-            } else if (rank == FamilyRank.HEAD || rank == FamilyRank.SUCCESSOR || rank == FamilyRank.SPARE_HEIR) {
-                rank = FamilyRank.CHILD;
+            } else if (rank != FamilyRank.CHILD) {
+                rank = FamilyRank.CHILD; // de erfgenamen (en hun partners) van de bruid hebben geen eigen lijn meer
+            }
+            if (rank == FamilyRank.CONSORT) {
+                makeRoom(groomFamily, member, rank);
             }
             genealogy.addOrigin(member, brideFamily.getName());
             groomFamily.addMember(member, brideFamily.getMembers().get(member), rank);
@@ -848,7 +879,9 @@ public class FamilyManager {
         archive(lineA, "absorbed");
         for (UUID member : new ArrayList<>(lineA.getMembers().keySet())) {
             genealogy.addOrigin(member, lineA.getName());
-            lineB.addMember(member, lineA.getMembers().get(member), member.equals(chooser) ? chooserRank : FamilyRank.CHILD);
+            FamilyRank rank = member.equals(chooser) ? chooserRank : FamilyRank.CHILD;
+            makeRoom(lineB, member, rank);
+            lineB.addMember(member, lineA.getMembers().get(member), rank);
             byMember.put(member, lineB);
         }
         removeFamily(lineA);

@@ -39,9 +39,13 @@ public final class EditorGui extends Gui {
         if (editable) {
             crestLore.add(text("crest-hint", "&eKlik met een banner om het familiewapen te veranderen"));
         }
+        if (family.getCrest() != null && (family.isMember(viewer.getUniqueId()) || service.isAdmin(viewer))) {
+            crestLore.add(text("crest-copy", "&7Shift-klik: een kopie van het wapen"));
+        }
         set(4, GuiItems.crest(family.getCrest(), text("crest-name", "&6Familiewapen"), crestLore), this::clickCrest);
         set(0, GuiItems.item(Material.BOOK, text("family-name", "&d%name%").replace("%name%", family.getName()),
                 Lore.family(service, family)));
+        set(6, GuiItems.item(Material.WRITTEN_BOOK, text("lineage-name", "&6&lKroniek van het Huis"), lineageLore()));
         set(8, GuiItems.item(Material.OAK_SAPLING, text("tree-button", "&aStamboom"),
                 List.of(text("tree-button-lore", "&7Generaties, partners en broers/zussen"))),
                 e -> openLater((Player) e.getWhoClicked(), new TreeGui(service, family, (Player) e.getWhoClicked())));
@@ -85,6 +89,21 @@ public final class EditorGui extends Gui {
         fill();
     }
 
+    /** Volledige afkomst: uit welke lijnen deze familie is ontstaan (in /family list staat hij niet). */
+    private List<String> lineageLore() {
+        List<String> lore = new ArrayList<>();
+        if (!family.isBranch()) {
+            lore.add(text("lineage-original", "&7Een oorspronkelijke lijn, door niemand voortgebracht."));
+            return lore;
+        }
+        lore.add(text("lineage-header", "&7Dit huis is ontstaan uit:"));
+        for (String line : family.getLineage()) {
+            lore.add(text("lineage-entry", "&8 ┃ &e⚜ &f%line%").replace("%line%", line));
+        }
+        lore.add(text("lineage-footer", "&8 ┗ &6&l%name%").replace("%name%", family.getName()));
+        return lore;
+    }
+
     /** Klik op een banner in je eigen inventory = die banner wordt het familiewapen (je houdt hem). */
     @Override
     protected void handleBottom(InventoryClickEvent event) {
@@ -104,6 +123,14 @@ public final class EditorGui extends Gui {
 
     private void clickCrest(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
+        if (event.isShiftClick()) {
+            try {
+                service.giveCrest(player, family);
+            } catch (FamilyException ex) {
+                service.send(player, ex.getKey());
+            }
+            return;
+        }
         if (!editable) {
             return;
         }

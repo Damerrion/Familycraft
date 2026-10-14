@@ -108,6 +108,24 @@ huidige familie, behalve als ze daar inmiddels hoofd zijn (die worden gemeld). B
 dan wordt die teruggedraaid; zet daarna ook de andere familie van de fusie terug. Is de tag/naam intussen van een
 andere familie, dan moet die eerst hernoemd worden.
 
+### Familiewapen kopiëren
+`/family admin getcrest [tag]` (of `/family getcrest`, of shift-klik op het wapen in `/family editor`) legt een kopie
+van het familiewapen in je inventory. Je eigen familie kan altijd; een andere familie alleen in admin mode.
+
+### Rangen
+Per familie is er maar **één** Opvolger, Reserve-erfgenaam, Gemaal en Gemaal van de Erfgenaam (`ranks.<rang>.max`).
+Bij een huwelijk gaat de nieuwe partner voor: een oud Gemaal (bv. van een vorig hoofd) wordt dan Kind van het Huis.
+
+### Afkomst
+In `/family list` staat de afkomst niet meer (te lang). De volledige afkomst (uit welke lijnen een huis is ontstaan)
+staat in `/family check [tag]` en in de **Kroniek van het Huis** (boek) in `/family editor`.
+
+### Effecten
+Bij de grote momenten (huis gesticht, lid geworden, rang, nieuw hoofd, verloofd, getrouwd, nieuw wapen, huis
+gevallen) krijgt de speler een titel, geluid en deeltjes; een nieuw huis en een huwelijk worden aan de hele server
+aangekondigd. Instellen onder `effects:` in family.yml (geluiden = Minecraft-keys, leeg = stil), teksten onder
+`messages.title-*`, `subtitle-*` en `announce-*`.
+
 ### Verboden namen en wapens
 - `banned.names` in family.yml: woorden die niet in een familienaam of tag mogen (ook midden in de naam; hoofdletters,
   spaties, `_` en `-` tellen niet, dus `Na_Zi` = `nazi`). Geldt bij maken en hernoemen.

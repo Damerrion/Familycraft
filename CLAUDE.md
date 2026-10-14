@@ -103,6 +103,15 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
   (`banned.crests`, via `/family crest ban|unban`, `reset <tag>`); vingerafdruk = patronen op volgorde met kleuren
   genummerd op volgorde van voorkomen (achtergrond = 0), dus hetzelfde teken in andere kleuren is ook verboden.
   `FamilyModule.setAndSave` slaat family.yml op (niet na een YAML-fout).
+- Rangen (gebruiker, 2026-10-14): max 1 Opvolger, Reserve-erfgenaam, Gemaal, Gemaal van de Erfgenaam. Huwelijk:
+  `spouseRank` (hoofd -> Gemaal, Opvolger -> Gemaal van de Erfgenaam, anders Kind) + `makeRoom` (oude houder -> Kind).
+- `/family admin getcrest [tag]` / `/family getcrest` / shift-klik op het wapen in de editor: kopie van het wapen
+  (`FamilyService.giveCrest`; eigen familie altijd, andere alleen in admin mode).
+- Afkomst (gebruiker): niet in de `/family list`-tooltip, wel volledig in `/family check` (`info-lineage*`) en in de
+  editor ("Kroniek van het Huis", slot 6).
+- "Epischer" (gebruiker): huizen-stijl in teksten (⚜ ♛ ❤ ⚔, alleen BMP-tekens: Minecraft toont geen emoji),
+  `FamilyEffects` (titel + geluid + deeltjes per `Moment`, server-aankondiging bij gesticht/getrouwd, geluid bij het
+  openen van een menu), `effects:` in family.yml. Oude teksten staan in `family-old-defaults.yml` v7.
 - `family-old-defaults.yml`: secties v1, v2, ... met oude standaardwaarden per versie (nieuwe versie onderaan erbij).
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").

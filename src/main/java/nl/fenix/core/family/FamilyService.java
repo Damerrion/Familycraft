@@ -38,6 +38,7 @@ public final class FamilyService {
     private final DisplayNames displayNames;
     private final FamilyInfo info;
     private final CrestBans crestBans;
+    private final FamilyEffects effects;
 
     public FamilyService(FamilyModule module, KingdomCraft kc, FamilyManager manager, FamilyStorage storage,
                          DisplayNames displayNames, FamilyInfo info) {
@@ -48,6 +49,7 @@ public final class FamilyService {
         this.displayNames = displayNames;
         this.info = info;
         this.crestBans = new CrestBans(module);
+        this.effects = new FamilyEffects(this);
     }
 
     public FamilyModule module() {
@@ -56,6 +58,11 @@ public final class FamilyService {
 
     public FamilyManager manager() {
         return manager;
+    }
+
+    /** Titels, geluiden, deeltjes en aankondigingen. */
+    public FamilyEffects effects() {
+        return effects;
     }
 
     public FamilyInfo info() {
@@ -292,6 +299,11 @@ public final class FamilyService {
         if (online != null && !online.equals(actor)) {
             send(online, "rank-received", "%rank%", rankName(rank), "%name%", family.getName());
         }
+        if (rank == FamilyRank.HEAD) {
+            notifyNewHead(family, target);
+        } else {
+            effects.play(online, FamilyEffects.Moment.RANK, "%rank%", rankName(rank), "%name%", family.getName());
+        }
     }
 
     public void link(Player actor, Family family, Genealogy.Relation relation, UUID a, UUID b) throws FamilyException {
@@ -330,6 +342,25 @@ public final class FamilyService {
         manager.setCrest(family, actor.getUniqueId(), bypass, GuiItems.encodeCrest(banner));
         save();
         send(actor, "crest-set", "%name%", family.getName());
+        effects.play(actor, FamilyEffects.Moment.CREST, "%name%", family.getName());
+    }
+
+    /**
+     * /family admin getcrest [tag]: een kopie van het familiewapen in je inventory. Je eigen familie altijd, een
+     * andere familie alleen in admin mode.
+     */
+    public void giveCrest(Player player, Family family) throws FamilyException {
+        if (!family.isMember(player.getUniqueId())) {
+            requireAdmin(player);
+        }
+        ItemStack banner = GuiItems.decodeCrest(family.getCrest());
+        if (!GuiItems.isBanner(banner)) {
+            throw new FamilyException("crest-none");
+        }
+        player.getInventory().addItem(banner.asOne()).values()
+                .forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
+        send(player, "crest-given", "%name%", family.getName(), "%tag%", family.getTag());
+        effects.sound(player, "effects.sounds.crest");
     }
 
     // ------------------------------------------------------------------ verboden wapens (admin)
@@ -476,6 +507,7 @@ public final class FamilyService {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null) {
                 sendWithButtons(p, "engage-accepted", repl, "wedding-button-open", "/family marriage");
+                effects.play(p, FamilyEffects.Moment.ENGAGED, repl);
             }
         }
         notifyBrideHead(e);
@@ -661,6 +693,7 @@ public final class FamilyService {
                 send(online, "wedding-done", "%groom%", groom, "%bride%", bride, "%outcome%", outcome);
             }
         }
+        celebrateWedding(e.getGroom(), e.getBride());
         if (family.needsRename()) {
             promptRename(Bukkit.getPlayer(family.getOwner()), family);
         }
@@ -679,6 +712,7 @@ public final class FamilyService {
         String outcome = message("wedding-outcome-branch", "%name%", branch.getName(), "%tag%", branch.getTag(),
                 "%lines%", m.getGroomFamily().getName() + " & " + m.getBrideFamily().getName());
         broadcast(branch, null, "wedding-done", "%groom%", nameOf(groom), "%bride%", nameOf(bride), "%outcome%", outcome);
+        celebrateWedding(groom, bride);
         if (branch.needsRename()) {
             promptRename(Bukkit.getPlayer(branch.getOwner()), branch);
         }
@@ -687,7 +721,16 @@ public final class FamilyService {
     private void notifyNewHead(Family family, UUID newHead) {
         if (newHead != null) {
             broadcast(family, null, "new-head", "%player%", nameOf(newHead), "%name%", family.getName());
+            effects.play(Bukkit.getPlayer(newHead), FamilyEffects.Moment.NEW_HEAD, "%name%", family.getName());
         }
+    }
+
+    /** Klokken, hartjes en vuurwerk voor het bruidspaar, en (als dat aan staat) een bericht aan de hele server. */
+    private void celebrateWedding(UUID groom, UUID bride) {
+        String[] repl = {"%groom%", nameOf(groom), "%bride%", nameOf(bride)};
+        effects.play(Bukkit.getPlayer(groom), FamilyEffects.Moment.WEDDING, repl);
+        effects.play(Bukkit.getPlayer(bride), FamilyEffects.Moment.WEDDING, repl);
+        effects.announce(FamilyEffects.Moment.WEDDING, repl);
     }
 
     /** "Popup": het hernoem-menu voor het hoofd van een aftakking die een nieuwe naam moet kiezen. */

@@ -229,7 +229,7 @@ public final class FamilyModule {
         for (FamilyRank rank : FamilyRank.values()) {
             if (rank != FamilyRank.HEAD) {
                 manager.setRankLimit(rank, cfg.getInt("ranks." + rank.id() + ".max",
-                        rank == FamilyRank.SUCCESSOR || rank == FamilyRank.SPARE_HEIR ? 1 : 0));
+                        rank == FamilyRank.CHILD ? 0 : 1));
             }
         }
         manager.setProposalExpireSeconds(cfg.getLong("marriage.proposal-expire-minutes", 30) * 60);

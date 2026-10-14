@@ -1,6 +1,7 @@
 package nl.fenix.core.family.command;
 
 import nl.fenix.core.family.FamilyModule;
+import nl.fenix.core.family.FamilyEffects;
 import nl.fenix.core.family.FamilyService;
 import nl.fenix.core.family.gui.EditorGui;
 import nl.fenix.core.family.gui.OverviewGui;
@@ -39,7 +40,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
             "accept", "cancel", "create", "disband", "check", "invite", "kick", "leave", "members", "info", "help",
-            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "dev", "force", "archive");
+            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "getcrest", "dev", "force", "admin", "archive");
 
     /** Rechten per functie (LuckPerms). Niet in de lijst = family.use. */
     private static final Map<String, String> PERMISSIONS = Map.ofEntries(
@@ -157,6 +158,9 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                 case "crest":
                     crest(sender, rest);
                     break;
+                case "getcrest":
+                    getCrest(player(sender), rest);
+                    break;
                 case "archive":
                 case "archief":
                     archive(sender, rest);
@@ -208,7 +212,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
         Family family = manager.create(p.getUniqueId(), p.getName(), args[0], args[1]);
         if (pays && !economy.withdraw(p, cost)) {
-            manager.disband(family);
+            manager.discard(family);
             throw new FamilyException("not-enough-money");
         }
         User user = kc.getOnlineUser(p.getUniqueId());
@@ -217,6 +221,9 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         refresh(p.getUniqueId());
         send(p, "created", "%name%", family.getName(), "%tag%", family.getTag(),
                 "%cost%", economy == null ? "" : economy.format(cost));
+        String[] repl = {"%name%", family.getName(), "%tag%", family.getTag(), "%player%", p.getName()};
+        service.effects().play(p, FamilyEffects.Moment.CREATED, repl);
+        service.effects().announce(FamilyEffects.Moment.CREATED, repl);
     }
 
     private void invite(Player p, String[] args) throws FamilyException {
@@ -239,6 +246,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         refresh(p.getUniqueId());
         send(p, "joined", "%name%", family.getName(), "%tag%", family.getTag());
         broadcast(family, p.getUniqueId(), "joined-broadcast", "%player%", p.getName());
+        service.effects().play(p, FamilyEffects.Moment.JOINED, "%name%", family.getName(), "%tag%", family.getTag());
     }
 
     /** Declines an invite, or cancels a pending disband / the owner's outgoing invites. */
@@ -338,6 +346,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
             Player online = Bukkit.getPlayer(m);
             if (online != null && online != sender) {
                 send(online, "disbanded-target", "%name%", family.getName());
+                service.effects().play(online, FamilyEffects.Moment.DISBANDED, "%name%", family.getName());
             }
         }
     }
@@ -358,9 +367,20 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         }
         final Family f = family;
         info.resolveKingdom(f, kingdom -> {
-            for (String key : new String[]{"info-border", "info-name", "info-tag", "info-kingdom", "info-created", "info-border"}) {
-                sender.sendMessage(info.format(plugin.getConfig().getString("messages." + key, key), f, kingdom));
+            for (String key : new String[]{"info-border", "info-name", "info-tag", "info-owner", "info-kingdom", "info-created"}) {
+                String line = plugin.getConfig().getString("messages." + key);
+                if (line != null && !line.isEmpty()) {
+                    sender.sendMessage(info.format(line, f, kingdom));
+                }
             }
+            // volledige afkomst: uit welke lijnen deze familie is ontstaan (niet in de /family list-tooltip)
+            if (f.isBranch()) {
+                sender.sendMessage(message("info-lineage"));
+                for (String line : f.getLineage()) {
+                    sender.sendMessage(message("info-lineage-entry", "%line%", line));
+                }
+            }
+            sender.sendMessage(info.format(plugin.getConfig().getString("messages.info-border", ""), f, kingdom));
         });
     }
 
@@ -529,6 +549,24 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /** /family admin getcrest [tag] (ook /family getcrest): kopie van het wapen; andere families alleen in admin mode. */
+    private void getCrest(Player p, String[] args) throws FamilyException {
+        Family family;
+        if (args.length > 0) {
+            family = manager.getFamilyByTag(args[0]);
+            if (family == null) {
+                p.sendMessage(message("family-not-found", "%tag%", args[0]));
+                return;
+            }
+        } else {
+            family = manager.getFamily(p.getUniqueId());
+            if (family == null) {
+                throw new FamilyException("not-in-family");
+            }
+        }
+        service.giveCrest(p, family);
+    }
+
     /** /family archive [restore|delete &lt;id&gt; | list]: archief van opgeheven/samengevoegde families (admin mode). */
     private void archive(CommandSender sender, String[] args) throws FamilyException {
         service.requireAdmin(sender);
@@ -564,6 +602,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
     /** /family force [on|off]: admin mode voor staff (family.admin), alleen dan andere families bewerken. */
     private void force(Player p, String[] args) throws FamilyException {
+        if (args.length > 0 && args[0].equalsIgnoreCase("getcrest")) {
+            getCrest(p, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
         boolean on = args.length == 0 ? !service.isAdminMode(p)
                 : args[0].equalsIgnoreCase("on") || args[0].equalsIgnoreCase("aan");
         if (on && !p.hasPermission("family.admin")) {
@@ -800,7 +842,10 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                 case "dev":
                     return filter(Arrays.asList("on", "off", "fake", "fakefamily", "enlope", "list", "clear"), args[1]);
                 case "force":
-                    return filter(Arrays.asList("on", "off"), args[1]);
+                case "admin":
+                    return filter(Arrays.asList("on", "off", "getcrest"), args[1]);
+                case "getcrest":
+                    return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[1]);
                 case "crest":
                     List<String> crest = new ArrayList<>();
                     if (service.isAdmin(sender)) {
@@ -841,6 +886,9 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         if (args.length == 3 && sub.equals("archive") && service.isAdmin(sender)
                 && (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("delete"))) {
             return filter(manager.getArchive().stream().map(ArchivedFamily::getId).collect(Collectors.toList()), args[2]);
+        }
+        if (args.length == 3 && (sub.equals("admin") || sub.equals("force")) && args[1].equalsIgnoreCase("getcrest")) {
+            return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[2]);
         }
         if (args.length == 3 && sub.equals("crest") && args[1].equalsIgnoreCase("reset") && service.isAdmin(sender)) {
             return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[2]);
