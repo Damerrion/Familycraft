@@ -96,4 +96,33 @@ public class FamilyStorageTest {
         assertEquals("Tygron", family.getKingdomName());
         assertFalse(family.isBranch());
     }
+
+    @Test
+    public void archiveSurvivesARestart() throws Exception {
+        UUID head = UUID.randomUUID(), son = UUID.randomUUID();
+        FamilyManager manager = new FamilyManager(30, 3, 0, 60);
+        Family a = manager.create(head, "Head", "Dokker_Lijn", "DL");
+        manager.invite(a, head, son);
+        manager.accept(son, "Son");
+        manager.setRank(a, head, false, son, FamilyRank.SUCCESSOR);
+        manager.setCrest(a, head, false, "Y3Jlc3Q=");
+        a.setKingdomName("Gast");
+        manager.disband(a);
+
+        File file = folder.newFile("families.yml");
+        new FamilyStorage(file, logger).save(manager);
+        FamilyManager loaded = new FamilyManager(30, 3, 0, 60);
+        new FamilyStorage(file, logger).load(loaded);
+
+        assertEquals(1, loaded.getArchive().size());
+        nl.fenix.core.family.model.ArchivedFamily entry = loaded.getArchive().get(0);
+        assertEquals("disband", entry.getReason());
+        Family back = loaded.unarchive(entry.getId()).getFamily();
+        assertEquals("Dokker Lijn", back.getName());
+        assertTrue(back.isOwner(head));
+        assertEquals(FamilyRank.SUCCESSOR, back.getRank(son));
+        assertEquals("Y3Jlc3Q=", back.getCrest());
+        assertEquals("Gast", back.getKingdomName());
+        assertEquals(a.getCreatedAt().toEpochMilli(), back.getCreatedAt().toEpochMilli());
+    }
 }

@@ -61,14 +61,7 @@ public final class GuiItems {
 
     /** Het familiewapen met naam en lore; zonder wapen een witte banner. */
     public static ItemStack crest(String encoded, String name, List<String> lore) {
-        ItemStack banner = null;
-        if (encoded != null) {
-            try {
-                banner = ItemStack.deserializeBytes(Base64.getDecoder().decode(encoded));
-            } catch (RuntimeException ignored) {
-                // kapot of van een andere versie: standaard-banner
-            }
-        }
+        ItemStack banner = decodeCrest(encoded);
         if (!isBanner(banner)) {
             banner = new ItemStack(Material.WHITE_BANNER);
         }
@@ -79,5 +72,17 @@ public final class GuiItems {
             meta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         });
         return banner;
+    }
+
+    /** Opgeslagen familiewapen terug naar een item; null als er geen is of hij kapot is. */
+    public static ItemStack decodeCrest(String encoded) {
+        if (encoded == null) {
+            return null;
+        }
+        try {
+            return ItemStack.deserializeBytes(Base64.getDecoder().decode(encoded));
+        } catch (RuntimeException ignored) {
+            return null; // kapot of van een andere versie: standaard-banner
+        }
     }
 }

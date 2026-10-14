@@ -75,6 +75,22 @@ marriage:
   proposal-expire-minutes: 30
   rename-at-families: 4
 
+# Archief: opgeheven, opgegane (huwelijk) en gefuseerde families worden bewaard, zodat een admin ze kan
+# terugzetten met /family archive (admin mode). Hoeveel er maximaal bewaard worden (oudste gaan eruit):
+archive:
+  max: 200
+
+# Verboden namen: woorden die niet in een familienaam of tag mogen. Hoofdletters, spaties, _ en - tellen niet
+# mee ("Na_Zi" = "nazi"), en het woord mag ook midden in de naam staan.
+# Verboden familiewapens: niet met de hand invullen, maar met /family crest ban (banner in je hand, admin mode).
+# Hetzelfde teken in andere kleuren is dan ook verboden. /family crest unban haalt hem er weer af.
+banned:
+  names:
+    - nazi
+    - hitler
+    - kkk
+  crests: []
+
 # Teksten van de menu's (/family list, /family editor). Variabelen in family-lore: %name% %tag% %kingdom%
 # %date% %owner% %members% %lineage% (regels met %lineage% alleen bij aftakkingen).
 gui:
@@ -224,6 +240,23 @@ gui:
   wedding-start-lore: '&7Alleen het hoofd van de familie van de bruid (%player%)'
   wedding-cancel: '&cVerloving verbreken'
   wedding-cancel-lore: '&7Shift-klik (alleen het bruidspaar)'
+  overview-archive: '&6Archief'
+  overview-archive-lore: '&7Opgeheven en samengevoegde families terugzetten'
+  archive-title: '&8Archief'
+  archive-item-name: '&d%name% &7[%tag%]'
+  archive-lore:
+    - '&7Reden: &f%reason%'
+    - '&7Gearchiveerd: &f%date%'
+    - '&7Familiehoofd: &f%owner%'
+    - '&7Leden (%count%): &f%members%'
+    - '&7Afstamming: &f%kingdom%'
+    - ''
+    - '&aKlik: terugzetten'
+    - '&cShift + rechtsklik: definitief verwijderen'
+  archive-empty: '&7Het archief is leeg'
+  archive-reason-disband: 'opgeheven'
+  archive-reason-absorbed: 'opgegaan in een andere lijn (huwelijk)'
+  archive-reason-fused: 'gefuseerd (huwelijk van twee hoofden)'
   previous: '&eVorige pagina'
   next: '&eVolgende pagina'
   back: '&eTerug'
@@ -396,6 +429,28 @@ messages:
     - '&7rangen, stamboom, rollen en keuze in het trouwmenu, trouwerij starten.'
   admin-on: '&cAdmin mode &4aan&c: je kunt nu elke familie bewerken. &7(/family force om uit te zetten)'
   admin-off: '&7Admin mode uit: je bewerkt alleen je eigen familie (als hoofd).'
+  admin-required: '&cDit kan alleen in admin mode: &f/family force'
+  name-banned: '&cDie naam of tag is niet toegestaan.'
+  crest-banned: '&cDit familiewapen is niet toegestaan.'
+  crest-ban-empty: '&cEen banner zonder patronen kun je niet verbieden.'
+  crest-ban-added: '&aDit wapen is nu verboden (ook in andere kleuren). &f%count% &afamilie(s) kregen weer het standaardwapen.'
+  crest-ban-exists: '&eDit wapen staat al op de verboden lijst.'
+  crest-ban-removed: '&aDit wapen is niet meer verboden.'
+  crest-ban-missing: '&cDit wapen staat niet op de verboden lijst.'
+  crest-reset: '&aHet familiewapen van &f%name% &ais teruggezet naar de standaard.'
+  crest-reset-target: '&eHet familiewapen van &f%name% &eis door een admin teruggezet (niet toegestaan).'
+  usage-crest: '&cGebruik: &f/family crest [tag]&c, &f/family crest ban&c, &f/family crest unban&c of &f/family crest reset <tag>'
+  usage-archive: '&cGebruik: &f/family archive&c, &f/family archive list&c, &f/family archive restore <id>&c of &f/family archive delete <id>'
+  archive-empty: '&7Het archief is leeg.'
+  archive-line: '&8- &f%id% &d%name% &7[%tag%] &8| &7%reason%, %date%, %count% leden'
+  archive-not-found: '&cDie familie staat niet (meer) in het archief.'
+  archive-tag-taken: '&cDe tag van deze familie is nu van een andere familie. Laat die eerst hernoemen.'
+  archive-name-taken: '&cDe naam van deze familie is nu van een andere familie. Laat die eerst hernoemen.'
+  archive-no-members: '&cNiemand kan terug: alle leden zijn nu hoofd van een andere familie.'
+  archive-restored: '&a%name% &7[%tag%] &ais teruggezet met &f%count% &aleden.'
+  archive-skipped: '&eNiet teruggezet (hoofd van een andere familie): &f%players%'
+  archive-restored-target: '&aJe familie &f%name% &ais door een admin teruggezet.'
+  archive-deleted: '&7%name% [%tag%] is definitief uit het archief gehaald.'
   usage-divorce: '&cGebruik: &f/divorce&c (scheiding aanvragen), &f/divorce accept&c of &f/divorce deny'
   divorce-not-married: '&cJe bent niet getrouwd.'
   divorce-no-request: '&cJe partner heeft geen scheiding aangevraagd.'
@@ -416,3 +471,6 @@ messages:
     - '&6/family crest &7- Banner in je hand als familiewapen'
     - '&6/divorce &7- Scheiden (je partner moet bevestigen)'
     - '&6/family force &7- Admin mode (staff)'
+    - '&6/family archive &7- Archief: families terugzetten (admin mode)'
+    - '&6/family crest ban|unban &7- Banner in je hand verbieden (admin mode)'
+    - '&6/family crest reset <tag> &7- Wapen terugzetten (admin mode)'

@@ -118,11 +118,17 @@ public class FamilyManager {
                 || normalizeName(raw).isEmpty()) {
             throw new FamilyException("name-invalid");
         }
+        if (isBanned(raw)) {
+            throw new FamilyException("name-banned");
+        }
     }
 
     public void validateTag(String raw) throws FamilyException {
         if (raw == null || raw.isEmpty() || raw.length() > maxTagLength || !TAG.matcher(raw).matches()) {
             throw new FamilyException("tag-invalid");
+        }
+        if (isBanned(raw)) {
+            throw new FamilyException("name-banned");
         }
     }
 
@@ -254,7 +260,14 @@ public class FamilyManager {
         byMember.remove(target);
     }
 
+    /** Opheffen (/family disband): eerst in het archief, zodat een admin het kan terugzetten. */
     public void disband(Family family) {
+        archive(family, "disband");
+        remove(family);
+    }
+
+    /** Familie weghalen zonder archief (bv. nep-families opruimen). */
+    private void remove(Family family) {
         byTag.remove(family.getTag().toLowerCase(Locale.ROOT));
         for (UUID member : family.getMembers().keySet()) {
             byMember.remove(member);
@@ -805,6 +818,8 @@ public class FamilyManager {
      * Bruid = Gemaal, Opvolger/Reserve-erfgenaam van de bruid worden Kind van het Huis, de rest houdt zijn rang.
      */
     private Family fuse(Family groomFamily, Family brideFamily, UUID bride) {
+        archive(groomFamily, "fused");
+        archive(brideFamily, "fused");
         MergedName merged = merge(groomFamily.getName(), brideFamily.getName());
         String oldGroomName = groomFamily.getName();
         for (UUID member : new ArrayList<>(groomFamily.getMembers().keySet())) {
@@ -830,6 +845,7 @@ public class FamilyManager {
 
     /** Lijn A gaat op in lijn B: iedereen van A wordt lid van B (kiezer = partner-rang, de rest Kind van het Huis). */
     private void absorb(Family lineA, Family lineB, UUID chooser, FamilyRank chooserRank) {
+        archive(lineA, "absorbed");
         for (UUID member : new ArrayList<>(lineA.getMembers().keySet())) {
             genealogy.addOrigin(member, lineA.getName());
             lineB.addMember(member, lineA.getMembers().get(member), member.equals(chooser) ? chooserRank : FamilyRank.CHILD);
@@ -1161,6 +1177,179 @@ public class FamilyManager {
         }
     }
 
+    // ---- archief ----
+
+    /** nieuwste eerst */
+    private final List<ArchivedFamily> archive = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private int archiveMax = 200;
+    /** woorden die niet in een familienaam of tag mogen (kleine letters, alleen letters) */
+    private final java.util.Set<String> bannedWords = ConcurrentHashMap.newKeySet();
+
+    public void setArchiveMax(int max) {
+        this.archiveMax = Math.max(1, max);
+    }
+
+    public List<ArchivedFamily> getArchive() {
+        return archive;
+    }
+
+    /** Laden uit families.yml (in opgeslagen volgorde, nieuwste eerst). */
+    public void loadArchived(ArchivedFamily entry) {
+        archive.add(entry);
+    }
+
+    private void archive(Family family, String reason) {
+        if (fakes.contains(family.getOwner()) && family.getMembers().keySet().stream().allMatch(fakes::contains)) {
+            return; // nep-familie (dev mode)
+        }
+        archive.add(0, ArchivedFamily.of(family, reason));
+        while (archive.size() > archiveMax) {
+            archive.remove(archive.size() - 1);
+        }
+    }
+
+    public ArchivedFamily getArchived(String id) {
+        for (ArchivedFamily a : archive) {
+            if (a.getId().equalsIgnoreCase(id)) {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    public void deleteArchived(String id) throws FamilyException {
+        ArchivedFamily a = getArchived(id);
+        if (a == null) {
+            throw new FamilyException("archive-not-found");
+        }
+        archive.remove(a);
+    }
+
+    /** Resultaat van terugzetten: de familie en de leden die niet terug konden (hoofd van een andere familie). */
+    public static final class Restored {
+        private final Family family;
+        private final List<UUID> skipped;
+
+        Restored(Family family, List<UUID> skipped) {
+            this.family = family;
+            this.skipped = skipped;
+        }
+
+        public Family getFamily() {
+            return family;
+        }
+
+        public List<UUID> getSkipped() {
+            return skipped;
+        }
+    }
+
+    /**
+     * Familie uit het archief terugzetten. Bestaat dezelfde familie nog (bv. na een fusie hernoemd), dan wordt die
+     * teruggedraaid; anders komt hij opnieuw. Leden gaan terug uit hun huidige familie, behalve als ze daar hoofd zijn.
+     */
+    public Restored unarchive(String id) throws FamilyException {
+        ArchivedFamily a = getArchived(id);
+        if (a == null) {
+            throw new FamilyException("archive-not-found");
+        }
+        Family existing = null;
+        for (Family f : byTag.values()) {
+            // zelfde familie = zelfde oprichtingsmoment en nog hetzelfde hoofd (of dezelfde tag)
+            if (f.getCreatedAt().equals(a.getCreatedAt())
+                    && (f.isOwner(a.getOwner()) || f.getTag().equalsIgnoreCase(a.getTag()))) {
+                existing = f;
+            }
+        }
+        Family tagOwner = getFamilyByTag(a.getTag());
+        if (tagOwner != null && tagOwner != existing) {
+            throw new FamilyException("archive-tag-taken");
+        }
+        for (Family f : byTag.values()) {
+            if (f != existing && f.getName().equalsIgnoreCase(a.getName())) {
+                throw new FamilyException("archive-name-taken");
+            }
+        }
+
+        // wie kan er terug? (hoofd van een andere familie niet)
+        List<UUID> skipped = new ArrayList<>();
+        List<UUID> back = new ArrayList<>();
+        for (UUID member : a.getMembers().keySet()) {
+            Family current = byMember.get(member);
+            if (current != null && current != existing && current.isOwner(member)) {
+                skipped.add(member);
+            } else {
+                back.add(member);
+            }
+        }
+        if (back.isEmpty()) {
+            throw new FamilyException("archive-no-members");
+        }
+        UUID owner = back.contains(a.getOwner()) ? a.getOwner() : back.get(0);
+
+        Family family;
+        if (existing != null) {
+            family = existing;
+            byTag.remove(family.getTag().toLowerCase(Locale.ROOT));
+            for (UUID member : new ArrayList<>(family.getMembers().keySet())) {
+                if (!a.getMembers().containsKey(member)) {
+                    family.removeMember(member);
+                    byMember.remove(member);
+                }
+            }
+            family.setNameAndTag(a.getName(), a.getTag());
+            family.getLineage().clear();
+        } else {
+            family = new Family(a.getName(), a.getTag(), owner, a.getMembers().get(owner), a.getCreatedAt());
+        }
+        for (UUID member : back) {
+            Family current = byMember.get(member);
+            if (current != null && current != family) {
+                current.removeMember(member);
+            }
+            family.addMember(member, a.getMembers().get(member), null);
+            family.putRank(member, a.getRanks().get(member));
+            byMember.put(member, family);
+            genealogy.setName(member, a.getMembers().get(member));
+        }
+        family.putRank(owner, null);
+        family.setOwner(owner);
+        family.setCrest(a.getCrest());
+        family.setKingdomName(a.getKingdomName());
+        family.getLineage().addAll(a.getLineage());
+        family.setNeedsRename(false);
+        byTag.put(a.getTag().toLowerCase(Locale.ROOT), family);
+        archive.remove(a);
+        return new Restored(family, skipped);
+    }
+
+    // ---- verboden namen ----
+
+    public void setBannedWords(Collection<String> words) {
+        bannedWords.clear();
+        for (String word : words) {
+            String w = lettersOnly(word);
+            if (!w.isEmpty()) {
+                bannedWords.add(w);
+            }
+        }
+    }
+
+    /** Bevat deze naam of tag een verboden woord? (hoofdletters, spaties, _ en - tellen niet) */
+    public boolean isBanned(String raw) {
+        String text = lettersOnly(raw);
+        for (String word : bannedWords) {
+            if (text.contains(word)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String lettersOnly(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}]", "");
+    }
+
     // ---- dev mode: nep-spelers ----
 
     /** Nep-spelers (dev mode), zodat je alles alleen kunt testen. Worden bewaard tot /family dev clear. */
@@ -1239,7 +1428,7 @@ public class FamilyManager {
                         }
                     }
                     if (real == null) {
-                        disband(family);
+                        remove(family);
                         disbanded++;
                     } else {
                         family.putRank(real, null);

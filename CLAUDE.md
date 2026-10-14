@@ -94,6 +94,15 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
 - `/divorce` (gebruiker): partner vraagt, de ander bevestigt (`/divorce accept|deny`); alleen de partner-koppeling
   weg, families blijven, Gemaal/Gemaal van de Erfgenaam -> Kind van het Huis. Admin: `/divorce force <speler>`.
 - Trouwmenu gaat na de verloving open bij bruidegom én bruid (`openWeddingForCouple`).
+- Archief (gebruiker: "verkeerde knop ... unarchive"): `FamilyManager.disband/absorb/fuse` slaan eerst een
+  `ArchivedFamily` op (`archive:` in families.yml, nieuwste eerst, max `archive.max`; nep-families niet).
+  `unarchive(id)`: bestaat de familie nog (zelfde createdAt + zelfde hoofd of tag) dan terugdraaien, anders opnieuw;
+  leden die nu hoofd van een andere familie zijn worden overgeslagen. `ArchiveGui` + `/family archive` (admin mode,
+  `FamilyService.requireAdmin`), knop in `OverviewGui` (slot 51) alleen in admin mode.
+- Verboden namen: `banned.names` (letters-only, contains) -> `name-banned`. Verboden wapens: `CrestBans`
+  (`banned.crests`, via `/family crest ban|unban`, `reset <tag>`); vingerafdruk = patronen op volgorde met kleuren
+  genummerd op volgorde van voorkomen (achtergrond = 0), dus hetzelfde teken in andere kleuren is ook verboden.
+  `FamilyModule.setAndSave` slaat family.yml op (niet na een YAML-fout).
 - `family-old-defaults.yml`: secties v1, v2, ... met oude standaardwaarden per versie (nieuwe versie onderaan erbij).
 - Opslaan van families.yml gebeurt op de main thread (een eerdere versie riep de scheduler aan met een verkeerde
   methode-signatuur en gaf "An internal error occurred").

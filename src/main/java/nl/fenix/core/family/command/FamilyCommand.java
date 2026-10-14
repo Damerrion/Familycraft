@@ -6,6 +6,8 @@ import nl.fenix.core.family.gui.EditorGui;
 import nl.fenix.core.family.gui.OverviewGui;
 import nl.fenix.core.family.gui.TreeGui;
 import nl.fenix.core.family.economy.VaultEconomy;
+import nl.fenix.core.family.gui.ArchiveGui;
+import nl.fenix.core.family.model.ArchivedFamily;
 import nl.fenix.core.family.model.Family;
 import nl.fenix.core.family.model.FamilyException;
 import nl.fenix.core.family.model.FamilyManager;
@@ -37,7 +39,7 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
             "accept", "cancel", "create", "disband", "check", "invite", "kick", "leave", "members", "info", "help",
-            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "dev", "force");
+            "list", "editor", "rank", "tree", "marriage", "rename", "crest", "dev", "force", "archive");
 
     /** Rechten per functie (LuckPerms). Niet in de lijst = family.use. */
     private static final Map<String, String> PERMISSIONS = Map.ofEntries(
@@ -153,8 +155,11 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     rename(player(sender), rest);
                     break;
                 case "crest":
-                    service.setCrest(player(sender), editableFamily(player(sender), rest, 0),
-                            player(sender).getInventory().getItemInMainHand());
+                    crest(sender, rest);
+                    break;
+                case "archive":
+                case "archief":
+                    archive(sender, rest);
                     break;
                 case "dev":
                     dev(player(sender), rest);
@@ -502,6 +507,61 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         service.openWedding(p, engagement);
     }
 
+    /** /family crest [tag] | ban | unban | reset &lt;tag&gt; (ban/unban/reset alleen in admin mode). */
+    private void crest(CommandSender sender, String[] args) throws FamilyException {
+        String action = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
+        switch (action) {
+            case "ban" -> service.banCrest(player(sender), player(sender).getInventory().getItemInMainHand());
+            case "unban" -> service.unbanCrest(player(sender), player(sender).getInventory().getItemInMainHand());
+            case "reset" -> {
+                service.requireAdmin(sender);
+                if (args.length < 2) {
+                    throw new FamilyException("usage-crest");
+                }
+                Family family = manager.getFamilyByTag(args[1]);
+                if (family == null) {
+                    throw new FamilyException("family-not-found");
+                }
+                service.resetCrest(sender, family);
+            }
+            default -> service.setCrest(player(sender), editableFamily(player(sender), args, 0),
+                    player(sender).getInventory().getItemInMainHand());
+        }
+    }
+
+    /** /family archive [restore|delete &lt;id&gt; | list]: archief van opgeheven/samengevoegde families (admin mode). */
+    private void archive(CommandSender sender, String[] args) throws FamilyException {
+        service.requireAdmin(sender);
+        String action = args.length == 0 ? (sender instanceof Player ? "gui" : "list") : args[0].toLowerCase(Locale.ROOT);
+        switch (action) {
+            case "gui" -> new ArchiveGui(service, 0).open((Player) sender);
+            case "list" -> {
+                if (manager.getArchive().isEmpty()) {
+                    send(sender, "archive-empty");
+                }
+                for (ArchivedFamily a : manager.getArchive()) {
+                    sender.sendMessage(message("archive-line", "%id%", a.getId(), "%name%", a.getName(),
+                            "%tag%", a.getTag(), "%reason%", service.archiveReason(a.getReason()),
+                            "%date%", FamilyService.formatDate(a.getArchivedAt()),
+                            "%count%", String.valueOf(a.getMembers().size())));
+                }
+            }
+            case "restore", "unarchive" -> {
+                if (args.length < 2) {
+                    throw new FamilyException("usage-archive");
+                }
+                service.unarchive(sender, args[1]);
+            }
+            case "delete" -> {
+                if (args.length < 2) {
+                    throw new FamilyException("usage-archive");
+                }
+                service.deleteArchived(sender, args[1]);
+            }
+            default -> throw new FamilyException("usage-archive");
+        }
+    }
+
     /** /family force [on|off]: admin mode voor staff (family.admin), alleen dan andere families bewerken. */
     private void force(Player p, String[] args) throws FamilyException {
         boolean on = args.length == 0 ? !service.isAdminMode(p)
@@ -741,6 +801,16 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
                     return filter(Arrays.asList("on", "off", "fake", "fakefamily", "enlope", "list", "clear"), args[1]);
                 case "force":
                     return filter(Arrays.asList("on", "off"), args[1]);
+                case "crest":
+                    List<String> crest = new ArrayList<>();
+                    if (service.isAdmin(sender)) {
+                        crest.addAll(Arrays.asList("ban", "unban", "reset"));
+                        manager.getFamilies().forEach(f -> crest.add(f.getTag()));
+                    }
+                    return filter(crest, args[1]);
+                case "archive":
+                    return service.isAdmin(sender)
+                            ? filter(Arrays.asList("list", "restore", "delete"), args[1]) : new ArrayList<>();
                 case "tree":
                     return filter(Arrays.asList("link", "unlink"), args[1]);
                 case "marriage":
@@ -767,6 +837,13 @@ public class FamilyCommand implements CommandExecutor, TabCompleter {
         if (sub.equals("tree") && ((args[1].equalsIgnoreCase("link") && (args.length == 4 || args.length == 5))
                 || (args[1].equalsIgnoreCase("unlink") && (args.length == 3 || args.length == 4)))) {
             return filter(memberNames(sender), args[args.length - 1]);
+        }
+        if (args.length == 3 && sub.equals("archive") && service.isAdmin(sender)
+                && (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("delete"))) {
+            return filter(manager.getArchive().stream().map(ArchivedFamily::getId).collect(Collectors.toList()), args[2]);
+        }
+        if (args.length == 3 && sub.equals("crest") && args[1].equalsIgnoreCase("reset") && service.isAdmin(sender)) {
+            return filter(manager.getFamilies().stream().map(Family::getTag).collect(Collectors.toList()), args[2]);
         }
         if (args.length == 3 && sub.equals("marriage")) {
             List<String> names = new ArrayList<>(memberNames(sender));

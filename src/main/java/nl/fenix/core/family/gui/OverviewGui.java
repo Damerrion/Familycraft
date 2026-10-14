@@ -75,6 +75,12 @@ public final class OverviewGui extends Gui {
         }
         set(49, GuiItems.item(Material.BARRIER, text("close", "&cSluiten"), List.of()),
                 e -> closeLater((Player) e.getWhoClicked()));
+        // archief (opgeheven/samengevoegde families terugzetten): alleen in admin mode
+        if (viewer != null && service.isAdmin(viewer)) {
+            set(51, GuiItems.item(Material.CHEST, text("overview-archive", "&6Archief"),
+                    List.of(text("overview-archive-lore", "&7Opgeheven en samengevoegde families terugzetten"))),
+                    e -> openLater((Player) e.getWhoClicked(), new ArchiveGui(service, 0)));
+        }
         if (p < pages - 1) {
             set(53, GuiItems.item(Material.ARROW, text("next", "&eVolgende pagina"), List.of()),
                     e -> openLater((Player) e.getWhoClicked(), new OverviewGui(service, viewer, kingdom, p + 1)));

@@ -1,5 +1,6 @@
 package nl.fenix.core.family.storage;
 
+import nl.fenix.core.family.model.ArchivedFamily;
 import nl.fenix.core.family.model.Family;
 import nl.fenix.core.family.model.FamilyManager;
 import nl.fenix.core.family.model.FamilyRank;
@@ -47,6 +48,7 @@ public class FamilyStorage {
             }
         }
         loadEngagements(yaml, manager);
+        loadArchive(yaml, manager);
         for (String fake : yaml.getStringList("fakes")) {
             try {
                 manager.getFakes().add(UUID.fromString(fake));
@@ -96,6 +98,39 @@ public class FamilyStorage {
                 logger.warning("Verloving kon niet geladen worden: " + ex);
             }
         }
+    }
+
+    /** archive: lijst van momentopnames, nieuwste eerst */
+    private void loadArchive(YamlConfiguration yaml, FamilyManager manager) {
+        for (Map<?, ?> map : yaml.getMapList("archive")) {
+            try {
+                ArchivedFamily a = new ArchivedFamily(String.valueOf(map.get("id")), String.valueOf(map.get("reason")),
+                        Instant.ofEpochMilli(((Number) map.get("archived")).longValue()), String.valueOf(map.get("name")),
+                        String.valueOf(map.get("tag")), Instant.ofEpochMilli(((Number) map.get("created")).longValue()),
+                        UUID.fromString(String.valueOf(map.get("owner"))), stringOrNull(map.get("crest")),
+                        stringOrNull(map.get("kingdom")));
+                Object members = map.get("members");
+                if (members instanceof Map<?, ?> m) {
+                    for (Map.Entry<?, ?> e : m.entrySet()) {
+                        UUID uuid = UUID.fromString(String.valueOf(e.getKey()));
+                        Map<?, ?> member = e.getValue() instanceof Map<?, ?> mm ? mm : Map.of();
+                        a.getMembers().put(uuid, String.valueOf(member.containsKey("name") ? member.get("name") : "?"));
+                        FamilyRank rank = FamilyRank.parse(stringOrNull(member.get("rank")));
+                        a.getRanks().put(uuid, rank == null ? FamilyRank.CHILD : rank);
+                    }
+                }
+                if (map.get("lineage") instanceof List<?> lineage) {
+                    lineage.forEach(l -> a.getLineage().add(String.valueOf(l)));
+                }
+                manager.loadArchived(a);
+            } catch (RuntimeException ex) {
+                logger.warning("Archief-regel kon niet geladen worden: " + ex);
+            }
+        }
+    }
+
+    private static String stringOrNull(Object o) {
+        return o == null ? null : String.valueOf(o);
     }
 
     private static Family loadFamily(ConfigurationSection s, Genealogy tree) {
@@ -184,6 +219,39 @@ public class FamilyStorage {
         }
         if (!engagements.isEmpty()) {
             yaml.set("engagements", engagements);
+        }
+        List<Map<String, Object>> archive = new ArrayList<>();
+        for (ArchivedFamily a : manager.getArchive()) {
+            Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("id", a.getId());
+            map.put("reason", a.getReason());
+            map.put("archived", a.getArchivedAt().toEpochMilli());
+            map.put("name", a.getName());
+            map.put("tag", a.getTag());
+            map.put("created", a.getCreatedAt().toEpochMilli());
+            map.put("owner", a.getOwner().toString());
+            if (a.getKingdomName() != null) {
+                map.put("kingdom", a.getKingdomName());
+            }
+            if (a.getCrest() != null) {
+                map.put("crest", a.getCrest());
+            }
+            if (!a.getLineage().isEmpty()) {
+                map.put("lineage", new ArrayList<>(a.getLineage()));
+            }
+            Map<String, Object> members = new java.util.LinkedHashMap<>();
+            for (Map.Entry<UUID, String> e : a.getMembers().entrySet()) {
+                Map<String, Object> member = new java.util.LinkedHashMap<>();
+                member.put("name", e.getValue());
+                FamilyRank rank = a.getRanks().get(e.getKey());
+                member.put("rank", (rank == null ? FamilyRank.CHILD : rank).id());
+                members.put(e.getKey().toString(), member);
+            }
+            map.put("members", members);
+            archive.add(map);
+        }
+        if (!archive.isEmpty()) {
+            yaml.set("archive", archive);
         }
         if (!manager.getFakes().isEmpty()) {
             List<String> fakes = new ArrayList<>();

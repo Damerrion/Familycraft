@@ -95,6 +95,27 @@ Elke functie heeft een eigen permissie, zodat je alles in LuckPerms aan/uit kunt
 
 Voorbeeld: `lp group default permission set family.marriage false` zet trouwen uit voor gewone spelers.
 
+### Archief (admin mode)
+Een familie die verdwijnt of verandert door **opheffen**, **opgaan in een andere lijn** of **fuseren** (huwelijk van
+twee hoofden) wordt eerst bewaard in het archief (`archive:` in families.yml, max `archive.max` = 200). Drukt een
+speler op de verkeerde knop, dan zet een admin hem terug:
+- `/family archive` (of de kist **Archief** in `/family list`, alleen in admin mode): klik = terugzetten,
+  shift + rechtsklik = definitief verwijderen.
+- `/family archive list|restore <id>|delete <id>` (ook vanuit de console).
+
+Terugzetten geeft de familie haar naam, tag, leden, rangen, wapen en afstamming terug. Leden komen terug uit hun
+huidige familie, behalve als ze daar inmiddels hoofd zijn (die worden gemeld). Bestaat de familie nog (een fusie),
+dan wordt die teruggedraaid; zet daarna ook de andere familie van de fusie terug. Is de tag/naam intussen van een
+andere familie, dan moet die eerst hernoemd worden.
+
+### Verboden namen en wapens
+- `banned.names` in family.yml: woorden die niet in een familienaam of tag mogen (ook midden in de naam; hoofdletters,
+  spaties, `_` en `-` tellen niet, dus `Na_Zi` = `nazi`). Geldt bij maken en hernoemen.
+- Wapens: houd de banner vast en gebruik `/family crest ban` (admin mode). Hetzelfde teken in **andere kleuren** is
+  dan ook verboden; families die hem al hadden krijgen het standaardwapen. `/family crest unban` haalt hem eraf,
+  `/family crest reset <tag>` zet het wapen van een familie terug. De lijst staat in `banned.crests`
+  (niet met de hand invullen).
+
 ### Dev mode (alleen testen)
 `/kwa dev` zet dev mode aan of uit voor **jouw** spells (na een herstart, of als je `kwa.dev` kwijtraakt, staat het uit).
 Met `ignore-kingdom: true` raken je spells dan ook spelers van je eigen kingdom, bondgenoten en creative (standaard uit).

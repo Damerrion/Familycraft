@@ -382,4 +382,80 @@ public class FamilyTreeTest {
         assertSame(merged, manager.getFamilyByTag("hl"));
         assertFalse(merged.needsRename());
     }
+
+    @Test
+    public void disbandCanBeUndone() throws Exception {
+        manager.setRank(a, headA, false, heirA, FamilyRank.SUCCESSOR);
+        a.setCrest("crest-a");
+        manager.disband(a);
+        assertNull(manager.getFamily(sonA));
+        assertEquals(1, manager.getArchive().size());
+        String id = manager.getArchive().get(0).getId();
+        assertEquals("disband", manager.getArchive().get(0).getReason());
+
+        FamilyManager.Restored r = manager.unarchive(id);
+        Family back = r.getFamily();
+        assertTrue(r.getSkipped().isEmpty());
+        assertEquals("Dokker Lijn", back.getName());
+        assertSame(back, manager.getFamilyByTag("DL"));
+        assertSame(back, manager.getFamily(sonA));
+        assertTrue(back.isOwner(headA));
+        assertEquals(FamilyRank.SUCCESSOR, back.getRank(heirA));
+        assertEquals("crest-a", back.getCrest());
+        assertEquals("Gast", back.getKingdomName());
+        assertTrue(manager.getArchive().isEmpty());
+        assertKey("archive-not-found", () -> manager.unarchive(id));
+    }
+
+    @Test
+    public void unarchiveSkipsHeadsOfOtherFamiliesAndChecksTag() throws Exception {
+        manager.disband(a);
+        String id = manager.getArchive().get(0).getId();
+        Family other = manager.create(sonA, "SonA", "Nieuwe_Lijn", "NL");
+        Family taken = manager.create(heirA, "HeirA", "Andere_Lijn", "DL");
+        assertKey("archive-tag-taken", () -> manager.unarchive(id));
+        manager.disband(taken);
+        FamilyManager.Restored r = manager.unarchive(id);
+        assertEquals(java.util.List.of(sonA), r.getSkipped());
+        assertSame(other, manager.getFamily(sonA));
+        assertSame(r.getFamily(), manager.getFamily(heirA));
+        assertSame(r.getFamily(), manager.getFamily(headA));
+    }
+
+    @Test
+    public void fusionCanBeUndone() throws Exception {
+        manager.setRank(b, headB, false, daughterB, FamilyRank.SUCCESSOR);
+        wed(headA, headB, true, null);
+        assertEquals(2, manager.getArchive().size());
+        String idA = null;
+        String idB = null;
+        for (nl.fenix.core.family.model.ArchivedFamily x : manager.getArchive()) {
+            assertEquals("fused", x.getReason());
+            if (x.getTag().equals("DL")) {
+                idA = x.getId();
+            } else {
+                idB = x.getId();
+            }
+        }
+        Family restoredA = manager.unarchive(idA).getFamily();
+        assertSame(a, restoredA); // dezelfde familie, teruggedraaid
+        assertEquals("Dokker Lijn", a.getName());
+        assertNull(manager.getFamily(headB));
+        Family restoredB = manager.unarchive(idB).getFamily();
+        assertEquals("Adamantie Lijn", restoredB.getName());
+        assertTrue(restoredB.isOwner(headB));
+        assertEquals(FamilyRank.SUCCESSOR, restoredB.getRank(daughterB));
+        assertSame(restoredB, manager.getFamily(daughterB));
+        assertFalse(a.isBranch());
+    }
+
+    @Test
+    public void bannedWords() throws Exception {
+        manager.setBannedWords(java.util.List.of("Nazi", "k k k"));
+        assertKey("name-banned", () -> manager.validateName("De_NAZI_lijn"));
+        assertKey("name-banned", () -> manager.validateTag("KKK"));
+        manager.validateName("Dokker_Lijn");
+        manager.validateTag("ABC");
+        assertKey("name-banned", () -> manager.create(UUID.randomUUID(), "X", "Na_zi", "NZ"));
+    }
 }

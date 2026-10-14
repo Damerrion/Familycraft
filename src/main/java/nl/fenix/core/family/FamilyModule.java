@@ -40,6 +40,8 @@ public final class FamilyModule {
     private final FenixCore core;
     private final File configFile;
     private YamlConfiguration config;
+    /** family.yml had een YAML-fout: nooit opslaan, anders is hij leeg */
+    private boolean configBroken;
 
     private FamilyManager manager;
     private FamilyStorage storage;
@@ -77,7 +79,8 @@ public final class FamilyModule {
         }
         YamlConfiguration jar = YamlConfiguration.loadConfiguration(new InputStreamReader(defaults, StandardCharsets.UTF_8));
         config.setDefaults(jar);
-        if (config.getKeys(false).isEmpty()) {
+        configBroken = config.getKeys(false).isEmpty();
+        if (configBroken) {
             // YAML-fout: Bukkit geeft dan een lege config. Nooit opslaan, anders is family.yml weg.
             getLogger().severe(CONFIG_FILE + " kon niet geladen worden (YAML-fout?); de standaardwaarden worden gebruikt.");
             return;
@@ -94,6 +97,20 @@ public final class FamilyModule {
             } catch (java.io.IOException e) {
                 getLogger().warning(CONFIG_FILE + " kon niet bijgewerkt worden: " + e);
             }
+        }
+    }
+
+    /** Instelling aanpassen en family.yml opslaan (bv. verboden wapens); niet als family.yml een YAML-fout had. */
+    public void setAndSave(String path, Object value) {
+        config.set(path, value);
+        if (configBroken) {
+            getLogger().warning(CONFIG_FILE + " heeft een YAML-fout; '" + path + "' geldt tot de volgende herstart.");
+            return;
+        }
+        try {
+            config.save(configFile);
+        } catch (java.io.IOException e) {
+            getLogger().warning(CONFIG_FILE + " kon niet opgeslagen worden: " + e);
         }
     }
 
@@ -217,6 +234,8 @@ public final class FamilyModule {
         }
         manager.setProposalExpireSeconds(cfg.getLong("marriage.proposal-expire-minutes", 30) * 60);
         manager.setRenameAtParts(cfg.getInt("marriage.rename-at-families", 4));
+        manager.setArchiveMax(cfg.getInt("archive.max", 200));
+        manager.setBannedWords(cfg.getStringList("banned.names"));
     }
 
     private VaultEconomy hookEconomy() {

@@ -37,6 +37,7 @@ public final class FamilyService {
     private final FamilyStorage storage;
     private final DisplayNames displayNames;
     private final FamilyInfo info;
+    private final CrestBans crestBans;
 
     public FamilyService(FamilyModule module, KingdomCraft kc, FamilyManager manager, FamilyStorage storage,
                          DisplayNames displayNames, FamilyInfo info) {
@@ -46,6 +47,7 @@ public final class FamilyService {
         this.storage = storage;
         this.displayNames = displayNames;
         this.info = info;
+        this.crestBans = new CrestBans(module);
     }
 
     public FamilyModule module() {
@@ -321,10 +323,117 @@ public final class FamilyService {
         if (!GuiItems.isBanner(banner)) {
             throw new FamilyException("crest-no-banner");
         }
+        if (crestBans.isBanned(banner)) {
+            throw new FamilyException("crest-banned");
+        }
         boolean bypass = !family.isOwner(actor.getUniqueId()) && isAdmin(actor);
         manager.setCrest(family, actor.getUniqueId(), bypass, GuiItems.encodeCrest(banner));
         save();
         send(actor, "crest-set", "%name%", family.getName());
+    }
+
+    // ------------------------------------------------------------------ verboden wapens (admin)
+
+    /** Alleen in admin mode (of dev mode / console). */
+    public void requireAdmin(CommandSender sender) throws FamilyException {
+        if (!isAdmin(sender)) {
+            throw new FamilyException(sender.hasPermission("family.admin") ? "admin-required" : "no-permission");
+        }
+    }
+
+    /** /family crest ban: de banner in je hand verbieden; families met dit wapen krijgen weer de standaard. */
+    public void banCrest(Player actor, ItemStack banner) throws FamilyException {
+        requireAdmin(actor);
+        String fingerprint = bannerFingerprint(banner);
+        if (!crestBans.add(fingerprint)) {
+            throw new FamilyException("crest-ban-exists");
+        }
+        int reset = 0;
+        for (Family family : manager.getFamilies()) {
+            if (crestBans.isBannedCrest(family.getCrest())) {
+                family.setCrest(null);
+                reset++;
+                notifyHead(family, "crest-reset-target");
+            }
+        }
+        if (reset > 0) {
+            save();
+        }
+        send(actor, "crest-ban-added", "%count%", String.valueOf(reset));
+    }
+
+    public void unbanCrest(Player actor, ItemStack banner) throws FamilyException {
+        requireAdmin(actor);
+        if (!crestBans.remove(bannerFingerprint(banner))) {
+            throw new FamilyException("crest-ban-missing");
+        }
+        send(actor, "crest-ban-removed");
+    }
+
+    private static String bannerFingerprint(ItemStack banner) throws FamilyException {
+        if (!GuiItems.isBanner(banner)) {
+            throw new FamilyException("crest-no-banner");
+        }
+        String fingerprint = CrestBans.fingerprint(banner);
+        if (fingerprint == null) {
+            throw new FamilyException("crest-ban-empty");
+        }
+        return fingerprint;
+    }
+
+    /** /family crest reset &lt;tag&gt;: wapen terug naar de standaard-banner. */
+    public void resetCrest(CommandSender actor, Family family) throws FamilyException {
+        requireAdmin(actor);
+        family.setCrest(null);
+        save();
+        send(actor, "crest-reset", "%name%", family.getName());
+        notifyHead(family, "crest-reset-target");
+    }
+
+    private void notifyHead(Family family, String key) {
+        Player head = Bukkit.getPlayer(family.getOwner());
+        if (head != null) {
+            send(head, key, "%name%", family.getName());
+        }
+    }
+
+    // ------------------------------------------------------------------ archief (admin)
+
+    /** Familie uit het archief terugzetten (zie {@link FamilyManager#unarchive}). */
+    public void unarchive(CommandSender actor, String id) throws FamilyException {
+        requireAdmin(actor);
+        FamilyManager.Restored restored = manager.unarchive(id);
+        Family family = restored.getFamily();
+        save();
+        // ook wie bij het terugdraaien van een fusie uit de familie ging
+        Bukkit.getOnlinePlayers().forEach(p -> refresh(p.getUniqueId()));
+        send(actor, "archive-restored", "%name%", family.getName(), "%tag%", family.getTag(),
+                "%count%", String.valueOf(family.getMembers().size()));
+        if (!restored.getSkipped().isEmpty()) {
+            List<String> names = new java.util.ArrayList<>();
+            restored.getSkipped().forEach(u -> names.add(nameOf(u)));
+            send(actor, "archive-skipped", "%players%", String.join(", ", names));
+        }
+        UUID except = actor instanceof Player p ? p.getUniqueId() : null;
+        broadcast(family, except, "archive-restored-target", "%name%", family.getName());
+    }
+
+    public void deleteArchived(CommandSender actor, String id) throws FamilyException {
+        requireAdmin(actor);
+        nl.fenix.core.family.model.ArchivedFamily a = manager.getArchived(id);
+        manager.deleteArchived(id);
+        save();
+        send(actor, "archive-deleted", "%name%", a.getName(), "%tag%", a.getTag());
+    }
+
+    /** Reden in leesbare tekst (gui.archive-reason-&lt;reden&gt;). */
+    public String archiveReason(String reason) {
+        return raw("gui.archive-reason-" + reason, reason);
+    }
+
+    public static String formatDate(java.time.Instant instant) {
+        return java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
+                .withZone(java.time.ZoneId.systemDefault()).format(instant);
     }
 
     public void rename(Player actor, Family family, String rawName, String rawTag) throws FamilyException {
