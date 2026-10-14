@@ -39,10 +39,9 @@ public final class ArchivedFamily {
         this.kingdomName = kingdomName;
     }
 
-    static ArchivedFamily of(Family family, String reason) {
-        Instant now = Instant.now();
-        ArchivedFamily a = new ArchivedFamily(family.getTag().toLowerCase(java.util.Locale.ROOT) + "-" + now.toEpochMilli(),
-                reason, now, family.getName(), family.getTag(), family.getCreatedAt(), family.getOwner(),
+    /** @param id uniek id (zie {@link FamilyManager}: tag + tijd, met een volgnummer als dat al bestaat) */
+    static ArchivedFamily of(Family family, String reason, String id, Instant now) {
+        ArchivedFamily a = new ArchivedFamily(id, reason, now, family.getName(), family.getTag(), family.getCreatedAt(), family.getOwner(),
                 family.getCrest(), family.getKingdomName());
         for (Map.Entry<UUID, String> e : family.getMembers().entrySet()) {
             a.members.put(e.getKey(), e.getValue());

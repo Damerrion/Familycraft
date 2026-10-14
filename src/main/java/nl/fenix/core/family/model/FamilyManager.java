@@ -1235,7 +1235,13 @@ public class FamilyManager {
         if (fakes.contains(family.getOwner()) && family.getMembers().keySet().stream().allMatch(fakes::contains)) {
             return; // nep-familie (dev mode)
         }
-        archive.add(0, ArchivedFamily.of(family, reason));
+        Instant now = Instant.now();
+        String base = family.getTag().toLowerCase(Locale.ROOT) + "-" + now.toEpochMilli();
+        String id = base;
+        for (int n = 2; getArchived(id) != null; n++) {
+            id = base + "-" + n; // zelfde tag in dezelfde milliseconde
+        }
+        archive.add(0, ArchivedFamily.of(family, reason, id, now));
         while (archive.size() > archiveMax) {
             archive.remove(archive.size() - 1);
         }
