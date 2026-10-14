@@ -1,19 +1,182 @@
-# FamilyCraft
+# FenixCore
 
-Family-systeem als addon voor [KingdomCraft](https://kingdomcraft.be). Draait als aparte plugin die via de
-publieke KingdomCraft API (`KingdomCraftProvider`) aanhaakt: de KingdomCraft jars worden niet aangepast of meegeleverd.
+De FenixKingdom-addon voor KingdomCraft (Paper 1.21.4). Eén plugin met twee modules:
+
+| Module | Voorheen | Commando's | Instellingen |
+|---|---|---|---|
+| **wands** | KingdomWandsAddon | `/kwa`, `/bind`, `/unbind` | `plugins/FenixCore/wands.yml` |
+| **family** | FamilyCraft | `/family` (`/familie`, `/fam`) | `plugins/FenixCore/family.yml` (+ data in `families.yml`) |
+
+Modules aan/uit in `plugins/FenixCore/config.yml` (herstart). Configs herladen zonder herstart:
+`/fenixcore reload [all|family|kwa]` (permissie `fenixcore.reload`, standaard op; `/kwa reload` werkt ook nog). Commando's en permissies (`kwa.*`, `family.*`) zijn hetzelfde
+gebleven, dus LuckPerms hoeft niet aangepast te worden.
+
+## Overstappen van KingdomWandsAddon / FamilyCraft
+1. Zet `FenixCore-x.y.z.jar` in `plugins/` en **verwijder** `KingdomWandsAddon` en `FamilyCraft` (jars).
+2. Start de server. FenixCore neemt bij de eerste start automatisch over:
+   `plugins/KingdomWandsAddon/config.yml` -> `wands.yml`, `plugins/FamilyCraft/config.yml` -> `family.yml`,
+   `plugins/FamilyCraft/families.yml` -> `families.yml` (gekopieerd; de oude mappen blijven als backup staan).
+3. Wands die al in het spel zijn blijven gewoon werken.
+
+Staat een oude plugin nog in `plugins/`, dan start die module van FenixCore niet (melding in de console),
+zodat wands en families niet dubbel afgehandeld worden.
 
 ## Bouwen
+Nodig: Java 21 (JDK). Maven hoef je niet te installeren, de wrapper haalt hem zelf op.
 
-1. Zet `KingdomCraftStarter-7.1.6-all.jar` in `libs/` (staat in `.gitignore`).
-2. `mvn package` -> `target/FamilyCraft-1.0.0.jar` in `plugins/` naast KingdomCraft (Vault is optioneel).
+Windows: `mvnw.cmd package` - Linux/macOS: `./mvnw package` -> `target/FenixCore-1.0.0.jar`.
 
-## Een familie bestaat uit
+Zonder iets te installeren: elke push bouwt de jar op GitHub (tab **Actions** -> workflow **Build** ->
+onderaan **Artifacts** -> `FenixCore`).
+
+KingdomCraft is nodig voor de family-module; de wands werken ook zonder (dan raken spells iedereen). Vault is optioneel.
+
+# Wands-module
+
+### Wands
+Alle wands staan in `wands.yml` onder `wands:`. Een nieuwe wand = een nieuw blok daar (naam, lore, material,
+kingdom, effect en welke spells), daarna `/kwa reload`. Alleen een nieuwe spell heeft een nieuwe build nodig.
+Elke wand krijgt automatisch de permissies `kwa.wand.<wand>` (krijgen) en `kwa.use.<wand>` (gebruiken), standaard op.
+
+Nu: `tygron` = **Tygron Deathwhistle** (Scream, Mark). Krijgen met `/kwa get tygron` (hoofdletters maken niet uit),
+of kies hem uit het menu met `/kwa get`.
+
+### Commando's (zoals KingdomWands Premium)
+Alles staat standaard aan voor operators; niet-ops krijgen permissies via LuckPerms. `kwa.*` geeft alles.
+
+| Commando | Permissie |
+|---|---|
+| `/kwa` of `/kwa info` | - |
+| `/kwa <pagina>` of `/kwa help [pagina]` | - |
+| `/kwa get` (menu met alle wands) | `kwa.getwand` + `kwa.wand.<wand>` |
+| `/kwa get <wand> [speler]` (bv. `/kwa get tygron`) | `kwa.wand.<wand>` |
+| `/kwa create <wand> [naam]` | `kwa.create` + `kwa.wand.<wand>` |
+| `/bind all`, `/bind <slot> <spell>` (of `/kwa bind ...`) | `kwa.bind` of de wand mogen gebruiken, + `kwa.spells.<Spell>` |
+| `/unbind <slot\|all>` (of `/kwa unbind ...`) | `kwa.unbind` of de wand mogen gebruiken |
+| `/kwa spells [spell]` (ook `list`, `spell`, `spelllist`) | `kwa.spells` of een wand mogen gebruiken |
+| `/kwa effect <effect>` | `kwa.effect` |
+| `/kwa dev [on\|off]` | `kwa.dev` |
+| `/kwa check <speler>` | `kwa.dev` of `kwa.admin` |
+| `/kwa reload` | `kwa.admin` |
+
+Wand gebruiken: `kwa.use.<wand>` (bv. `kwa.use.tygron` voor de Stamleider; `kwa.use` = alle wands) + `kwa.spells.<Spell>`.
+Zonder die permissie is de wand een gewoon item: klikken doet niets.
+`/bind` en `/unbind` worden afgevangen als je een wand van deze addon vasthoudt (of altijd, als geen andere plugin
+zoals KingdomWands `/bind` heeft). Alle teksten staan onder `messages:` in `wands.yml`.
+
+Besturing: rechtermuis = volgende spell, shift + rechtermuis = vorige, linkermuis (ook op een speler) = casten.
+Elke spell heeft een eigen switch-toon bij het selecteren (`select-sound` per spell in `wands.yml`; ook resourcepack-geluiden).
+Spells raken iedereen behalve het `kingdom` van de wand en de bondgenoten daarvan. De caster raakt zichzelf nooit
+(behalve in dev mode).
+
+### Scheiden
+`/divorce` vraagt je partner om te scheiden; die klikt **[Scheiden]** (of `/divorce accept|deny`). Alleen de
+partner-koppeling verdwijnt, de families blijven zoals ze zijn; een aangetrouwde rang (Gemaal, Gemaal van de
+Erfgenaam) wordt Kind van het Huis. Admin mode: `/divorce force <speler>`.
+
+### Rechten (LuckPerms) en admin mode
+Een familiehoofd bewerkt alleen zijn **eigen** familie (rangen, stamboom, wapen, naam). Ook ops/staff zijn gewone
+spelers, tot ze **admin mode** aanzetten met `/family force` (permissie `family.admin`); dan kunnen ze elke familie
+bewerken, kicken/opheffen en huwelijken forceren. Admin mode staat na een herstart uit.
+
+Elke functie heeft een eigen permissie, zodat je alles in LuckPerms aan/uit kunt zetten:
+| Permissie | Standaard | Wat |
+|---|---|---|
+| `family.use` | iedereen | `/family` (invite, accept, cancel, kick, leave, disband, help) |
+| `family.info` | iedereen | `/family check`, `info`, `members` |
+| `family.list` | iedereen | `/family list` |
+| `family.editor` | iedereen | `/family editor` openen |
+| `family.rank` / `family.tree` / `family.crest` / `family.rename` | iedereen | rangen / stamboom / wapen / naam (als hoofd) |
+| `family.marriage` / `family.divorce` | iedereen | `/enlope` + trouwmenu / `/divorce` |
+| `family.create` | op | een familie maken (gekocht) |
+| `family.dev` | op | `/family dev` |
+| `family.admin` | op | `/family force` (admin mode) |
+| `family.*` | op | alles |
+
+Voorbeeld: `lp group default permission set family.marriage false` zet trouwen uit voor gewone spelers.
+
+### Archief (admin mode)
+Een familie die verdwijnt of verandert door **opheffen**, **opgaan in een andere lijn** of **fuseren** (huwelijk van
+twee hoofden) wordt eerst bewaard in het archief (`archive:` in families.yml, max `archive.max` = 200). Drukt een
+speler op de verkeerde knop, dan zet een admin hem terug:
+- `/family archive` (of de kist **Archief** in `/family list`, alleen in admin mode): klik = terugzetten,
+  shift + rechtsklik = definitief verwijderen.
+- `/family archive list|restore <id>|delete <id>` (ook vanuit de console).
+
+Terugzetten geeft de familie haar naam, tag, leden, rangen, wapen en afstamming terug. Leden komen terug uit hun
+huidige familie, behalve als ze daar inmiddels hoofd zijn (die worden gemeld). Bestaat de familie nog (een fusie),
+dan wordt die teruggedraaid; zet daarna ook de andere familie van de fusie terug. Is de tag/naam intussen van een
+andere familie, dan moet die eerst hernoemd worden.
+
+### Familiewapen kopiëren
+`/family admin getcrest [tag]` (of `/family getcrest`, of shift-klik op het wapen in `/family editor`) legt een kopie
+van het familiewapen in je inventory. Je eigen familie kan altijd; een andere familie alleen in admin mode.
+
+### Rangen
+Per familie is er maar **één** Opvolger, Reserve-erfgenaam, Gemaal en Gemaal van de Erfgenaam (`ranks.<rang>.max`).
+Bij een huwelijk gaat de nieuwe partner voor: een oud Gemaal (bv. van een vorig hoofd) wordt dan Kind van het Huis.
+
+### Afkomst
+In `/family list` staat de afkomst niet meer (te lang). De volledige afkomst (uit welke lijnen een huis is ontstaan)
+staat in `/family check [tag]` en in de **Kroniek van het Huis** (boek) in `/family editor`.
+
+### Effecten
+Bij de grote momenten (huis gesticht, lid geworden, rang, nieuw hoofd, verloofd, getrouwd, nieuw wapen, huis
+gevallen) krijgt de speler een titel, geluid en deeltjes; een nieuw huis en een huwelijk worden aan de hele server
+aangekondigd. Instellen onder `effects:` in family.yml (geluiden = Minecraft-keys, leeg = stil), teksten onder
+`messages.title-*`, `subtitle-*` en `announce-*`.
+
+### Overleden roleplay-karakters
+Sterft het roleplay-karakter van een lid, dan maakt het hoofd (of een admin) er een **gedenkplaats** van:
+`/family deceased <lid> [karakternaam]` (of in `/family editor` → lid → **✝ Overleden verklaren**, de karakternaam
+typ je dan in de chat). Het karakter blijft als ✝ (skelet-schedel, grijze naam) in de familie en de stamboom staan,
+met al zijn relaties (ouders, kinderen, partner) en afkomst. De speler blijft lid als Kind van het Huis zonder
+relaties en kan verder met een nieuw karakter. Was het karakter hoofd, dan neemt de Opvolger (of Reserve-erfgenaam)
+het over; een Opvolger wordt opgevolgd door de Reserve-erfgenaam. Een weduwe/weduwnaar mag opnieuw trouwen.
+Vergissing: `/family deceased revive <karakter>` (of "Terug tot leven" in het lid-menu); weghalen:
+`/family deceased remove <karakter>`. Permissie `family.deceased` (iedereen, werkt als hoofd).
+
+### Admin-website (overzicht + editor)
+De plugin heeft een kleine website met alle admin- en dev-commando's, alle permissies, wie online admin/dev-rechten
+of admin/dev mode heeft, de families, overleden karakters en het archief. Het is ook een **editor**:
+- per familie (knop **Bewerken**): hernoemen (naam + tag), afstamming (kingdom), wapen terugzetten, opheffen;
+  per lid: rang geven (ook hoofd overdragen), karakter overleden verklaren, kicken; overledenen terugzetten of
+  weghalen; stamboom koppelen en ontkoppelen;
+- archief terugzetten/verwijderen, verboden namen toevoegen/weghalen, verboden wapens weer toestaan, admin/dev mode
+  van online staff uitzetten.
+Gevaarlijke acties (opheffen, kicken, verwijderen) vragen een vinkje "zeker". Elke wijziging staat in het
+**logboek** op de site en in de console (`[Web-admin] <naam> ...`); de naam komt uit de link van `/fenixcore web`.
+Spelers krijgen dezelfde meldingen als bij de commando's. `/fenixcore web`
+(permissie `fenixcore.web`, op) geeft de link met een geheim token; `/fenixcore web newtoken` maakt een nieuwe link.
+Instellen onder `web:` in config.yml (poort 8095; zet die open bij je host, en vul `public-address` in).
+
+### Verboden namen en wapens
+- `banned.names` in family.yml: woorden die niet in een familienaam of tag mogen (ook midden in de naam; hoofdletters,
+  spaties, `_` en `-` tellen niet, dus `Na_Zi` = `nazi`). Geldt bij maken en hernoemen.
+- Wapens: houd de banner vast en gebruik `/family crest ban` (admin mode). Hetzelfde teken in **andere kleuren** is
+  dan ook verboden; families die hem al hadden krijgen het standaardwapen. `/family crest unban` haalt hem eraf,
+  `/family crest reset <tag>` zet het wapen van een familie terug. De lijst staat in `banned.crests`
+  (niet met de hand invullen).
+
+### Dev mode (alleen testen)
+`/kwa dev` zet dev mode aan of uit voor **jouw** spells (na een herstart, of als je `kwa.dev` kwijtraakt, staat het uit).
+Met `ignore-kingdom: true` raken je spells dan ook spelers van je eigen kingdom, bondgenoten en creative (standaard uit).
+`/kwa check <speler>` laat zien of een speler geraakt wordt en waarom (kingdom, relatie, openstaand ally-verzoek, dev mode).
+In dev mode (elk onderdeel aan/uit te zetten onder `dev:` in `wands.yml`):
+- geen cooldowns
+- spells raken jezelf ook
+- spells raken ook mobs (zo kun je Scream en Mark alleen testen)
+- je eigen kingdom, bondgenoten en spelers in creative worden ook geraakt
+- debug in de chat: wie er geraakt is
+
+# Family-module
+
+### Een familie bestaat uit
 
 1. **Naam** - geen cijfers, max 30 tekens (`_` wordt een spatie: `Rheanos_Decendants`).
 2. **Tag** - geen cijfers, max 3 tekens, de prefix voor de spelersnaam.
 
-## Commando's (`/family`, aliassen `/familie`, `/fam`)
+### Commando's (`/family`, aliassen `/familie`, `/fam`)
 
 | Commando | Wie | Wat |
 |---|---|---|
@@ -29,14 +192,87 @@ publieke KingdomCraft API (`KingdomCraftProvider`) aanhaakt: de KingdomCraft jar
 Permissies: `family.use` (standaard iedereen), `family.create` (de gekochte rechten), `family.admin`
 (gratis aanmaken, `disband <tag>` / `kick <tag> <speler>` voor elke familie).
 
-## Prefix in de chat
+### Overzicht, editor, rangen en stamboom
+| Commando | Wat |
+|---|---|
+| `/family list` | GUI met de families van **jouw kingdom** (familiewapen, tag, hoofd, leden, afstamming). Klik = leden en stamboom |
+| `/family list <kingdom>` / `/family list all` | Families van een ander kingdom / van alle kingdoms (`/family list <tag>` opent die familie) |
+| `/family editor [tag]` | Familiewapen (klik met een banner), info, leden met rang en relaties, stamboom. Alleen het hoofd (of `family.admin`) kan bewerken |
+| `/family rank give <speler\|UUID> <rang>` | Rangen: Familiehoofd, Opvolger, Reserve-erfgenaam, Gemaal, Gemaal van de Erfgenaam, Kind van het Huis (`/family rank list`). Familiehoofd geven = het hoofd overdragen |
+| `/family tree link <parent\|child\|partner\|sibling> <a> <b>` / `unlink <a> <b>` | Stamboom koppelen (ook via de editor) |
+| `/family crest` | Banner in je hand wordt het familiewapen |
 
-FamilyCraft registreert placeholders in KingdomCraft: `{family_tag}`, `{family_prefix}`, `{family_name}`.
-Zet ze in `plugins/KingdomCraft/chat.yml`, bv.:
+Nieuwe leden krijgen de rang Kind van het Huis. Hoeveel leden een rang mogen hebben staat onder `ranks` in
+`family.yml` (standaard 1 Opvolger en 1 Reserve-erfgenaam). Een ouder/kind (of grootouder/kleinkind) kan niet ook
+broer/zus zijn. In de stamboom is elke rij een generatie (gekleurde markering links), staan koppels naast elkaar
+met een ❤ ertussen en kinderen onder hun ouders; naamkleur = rang. De stamboom hoort bij de speler, dus relaties blijven bestaan
+als iemand naar een aftakking gaat.
 
-```yaml
-format: '&7[&aP&7]&f{kingdom_prefix}{rank_prefix} {family_prefix} &f{prefix}{username}&7: &f{message}'
-```
+### Verloving en huwelijk
+1. **Verloven:** `/enlope <speler>`; de ander klikt **[Ja]** (of `/enlope accept|deny`). Verbreken: `/enlope cancel`.
+2. **Trouwmenu** (`/family marriage`, of `/enlope` zonder speler): het paar wisselt wie **bruidegom** en wie **bruid**
+   is, en wie de **keuze** (A) heeft. A kiest daar ook hoe de lijnen verder gaan.
+   Het menu gaat bij de verloving open bij zowel de bruidegom als de bruid.
+3. Het **hoofd van de familie van de bruid** opent het menu (klikbare melding of `/family marriage <bruid>`) en klikt
+   **Start de trouwerij**.
 
-Resultaat: `[Gast] [RD] doomerix: Gegroet!`. Alle teksten en het prefixformaat staan in `config.yml`.
-Families worden opgeslagen in `plugins/FamilyCraft/families.yml`.
+Wat er gebeurt:
+| Bruidspaar | Uitkomst |
+|---|---|
+| Hoofd + hoofd | De families **fuseren**: `Dokker Lijn` + `Adamantie Lijn` -> **`Dokker-Adamantie Lijn` [DAL]**. Bruidegom blijft hoofd, bruid wordt Gemaal; Opvolger/Reserve-erfgenaam van de bruid worden Kind van het Huis |
+| Hoofd + Opvolger | De **Opvolger gaat over** naar de familie van het hoofd (als Gemaal); de Reserve-erfgenaam wordt de nieuwe Opvolger |
+| Zelfde familie | Ze worden partners, verder verandert er niets |
+| Anders: A kiest | **Lijn A gaat op in lijn B** of andersom **lijn B in lijn A** · **alleen A gaat over naar lijn B** of andersom **alleen de partner naar lijn A** (beide lijnen gaan verder) · **samen een nieuwe lijn C** (alleen het bruidspaar, nieuwe naam kiezen; A en B gaan verder) · **aftakking** (`A-B`, alleen het paar). Een hele lijn meenemen kan alleen als het hoofd of de Opvolger van die lijn trouwt |
+
+Familie kan niet met elkaar trouwen of verloven: broer/zus (gekoppeld of met een gemeenschappelijke ouder) en
+(voor)ouder/(klein)kind. Dat geldt ook voor een partner-koppeling in de stamboom.
+
+De aangetrouwde partner wordt Gemaal (bij een hoofd), Gemaal van de Erfgenaam (bij een Opvolger/Reserve-erfgenaam)
+of Kind van het Huis. Gaat een hoofd weg, dan neemt de Opvolger (anders Reserve-erfgenaam) het over.
+Komen er 4 families in de naam (`A-B-C-D`) of kies je een nieuwe lijn, dan krijgt het hoofd een popup om een nieuwe
+naam en tag te kiezen (`/family rename <naam> <tag>`).
+
+**Afkomst:** bij elke overgang wordt per speler bewaard uit welke lijn(en) hij of zij officieel stamt. Dat staat bij
+elk lid in de editor en de stamboom (bv. `Afkomst: Dokker Lijn → Adamantie Lijn`), en bij een familie onder Afkomst.
+
+Admins: `/family marriage force <bruidegom> <bruid>` (direct een aftakking, zonder verloving/akkoord).
+
+### Dev mode (alleen testen)
+`/family dev` (permissie `family.dev`, standaard op) zet dev mode aan/uit voor **jou** (na een herstart uit). In dev mode
+mag je alles wat een familiehoofd/admin mag (editor van elke familie, rangen, stamboom, rollen en keuze in het
+trouwmenu, trouwerij starten), en kun je alles alleen testen met nep-spelers:
+| Commando | Wat |
+|---|---|
+| `/family dev fake <naam> [tag]` | Nep-lid in je eigen familie (of de familie met die tag) |
+| `/family dev fakefamily <hoofd> <naam> <tag>` | Nep-familie met een nep-hoofd |
+| `/family dev enlope <a> <b>` (of `fake enlope`) | Direct verloven (ook nep-spelers) en het trouwmenu openen. `/enlope <nep-speler>` in dev mode: de nep-speler zegt meteen ja |
+| `/family dev list` / `clear` | Nep-spelers bekijken / alles opruimen (families met alleen nep-leden worden opgeheven) |
+
+Nep-spelers worden bewaard in families.yml (`fakes:`) tot `/family dev clear`.
+
+De **familie afstamming** (kingdom van het hoofd) wordt bij de oprichting vastgelegd en blijft staan als het hoofd
+later van kingdom wisselt.
+
+### Prefix in de chat / boven het hoofd
+
+FenixCore registreert placeholders in KingdomCraft: `{family_tag}`, `{family_prefix}`, `{family_name}`.
+
+- **Display name** (standaard aan, `display-name` in `family.yml`): KingdomCraft zet de display name zelf op
+  `<kingdom prefix> <naam>`. FenixCore overschrijft die met
+  `{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}`, dus de familietag staat direct na het koninkrijk.
+  Chatplugins die de display name gebruiken (EssentialsChat e.d.) tonen dan `[Gast] [RD] doomerix`.
+- **KingdomCraft chat** (`plugins/KingdomCraft/chat.yml`): zet `{family_prefix}` direct voor de naam, zonder
+  eigen haakjes of spatie erachter: `{family_prefix}` is `[TW] ` (haakjes + spatie) en helemaal leeg zonder familie.
+  `format: '&7[&aP&7]&f{kingdom_prefix}{rank_prefix} {family_prefix}&f{prefix}{username}&7: &f{message}'`
+  Gebruik dus niet `[{family_tag}]`: dan blijft `[]` staan voor spelers zonder familie.
+- **Premium nametags/tablist** (`plugins/KingdomCraftPremium/config.yml`):
+  `prefix_format: '{kingdom_nametag_prefix}{family_prefix}{rank_nametag_prefix}'`
+
+#### Hover / klik op de prefix
+
+In de KingdomCraft chat laat `{family_prefix}` bij hover de familie-info zien (naam, afkorting, afstamming,
+datum opgericht, eigenaar, leden) en voert een klik `/family members <tag>` uit. Instellen of uitzetten via
+`chat-hover` in `family.yml`. Werkt alleen met `{family_prefix}` (niet met `{family_tag}`).
+
+Na het wijzigen van `chat.yml` / Premium config: `/k reload` (of herstart).
+Alle teksten en het prefixformaat staan in `family.yml`. Families worden opgeslagen in `plugins/FenixCore/families.yml`.

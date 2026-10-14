@@ -1,0 +1,565 @@
+# FenixCore - family-module (voorheen FamilyCraft)
+
+settings:
+  # Maximum length of the family name (no digits allowed)
+  max-name-length: 30
+  # Maximum length of the family tag (no digits allowed)
+  max-tag-length: 3
+  # Seconds an invite stays valid
+  invite-expire-seconds: 60
+  # Seconds you have to confirm /family disband
+  disband-confirm-seconds: 15
+  # Maximum members per family (0 = unlimited)
+  max-members: 0
+
+economy:
+  # One-time price for creating a family (needs Vault + an economy plugin).
+  # 0 = free. Players with family.admin never pay.
+  create-cost: 0.0
+
+# Placeholders for the KingdomCraft chat.yml / scoreboards (use them like {family_prefix}):
+#   {family_tag}     -> RD
+#   {family_prefix}  -> the `prefix-format` below with the tag filled in, completely empty without family
+#                       (brackets and the trailing space included, so use '{kingdom_prefix} {family_prefix}{username}')
+#   {family_name}    -> Rheanos Decendants
+placeholders:
+  prefix-format: '&7[&f%tag%&7] '
+
+# Hovering over {family_prefix} in the KingdomCraft chat shows these lines, clicking it runs click-command.
+# Only works for {family_prefix} (not {family_tag}). Variables: %name% %tag% %kingdom% %date% %owner% %members%
+chat-hover:
+  enabled: true
+  lines:
+    - '&6&m                              '
+    - '&6&l⚜ &e&l%name% &6&l⚜'
+    - '&7Tag &8» &e%tag%'
+    - '&7Afstamming &8» &f%kingdom%'
+    - '&7Opgericht &8» &f%date%'
+    - '&7Familiehoofd &8» &6♛ &f%owner% &8(&7%members% leden&8)'
+    - '&6&m                              '
+    - '&e» Klik voor de leden'
+  # empty = nothing happens on click
+  click-command: '/family members %tag%'
+
+# Rangen (hiërarchie). name = weergave, max = hoeveel leden die rang mogen hebben (0 = onbeperkt).
+# Standaard per familie maar één Opvolger, Reserve-erfgenaam, Gemaal en Gemaal van de Erfgenaam.
+# Het familiehoofd is er altijd precies één. Geven: /family rank give <speler|UUID> <rang> of via /family editor.
+# In het commando: familiehoofd, opvolger, reserve-erfgenaam, gemaal, gemaal-van-de-erfgenaam, kind-van-het-huis.
+# (de sleutels hieronder blijven Engels, zodat bestaande families.yml blijft werken)
+ranks:
+  family-head:
+    name: 'Familiehoofd'
+  successor:
+    name: 'Opvolger'
+    max: 1
+  spare-heir:
+    name: 'Reserve-erfgenaam'
+    max: 1
+  consort:
+    name: 'Gemaal'
+    max: 1
+  heirs-consort:
+    name: 'Gemaal van de Erfgenaam'
+    max: 1
+  children-of-the-house:
+    name: 'Kind van het Huis'
+    max: 0
+
+# Huwelijk: /enlope <speler> (verloving, de ander klikt [Ja]). In het trouwmenu (/family marriage) stelt het paar in
+# wie bruidegom/bruid is en wie (A) kiest; het hoofd van de familie van de bruid start de trouwerij.
+#  - hoofd + hoofd: de families fuseren tot "Dokker Lijn" + "Adamantie Lijn" -> "Dokker-Adamantie Lijn" [DAL]
+#  - hoofd + Opvolger: de Opvolger gaat over naar de familie van het hoofd (Reserve-erfgenaam schuift door)
+#  - anders kiest A: lijn A gaat op in lijn B / alleen A gaat over / samen nieuwe lijn C / aftakking "A-B"
+#    (hele lijn meenemen kan alleen het hoofd of de Opvolger van lijn A)
+# Vanaf zoveel families in de naam (A-B-C-D) moet het hoofd een nieuwe naam en tag kiezen.
+# proposal-expire-minutes = hoe lang een /enlope-aanzoek openstaat.
+marriage:
+  proposal-expire-minutes: 30
+  rename-at-families: 4
+
+# Archief: opgeheven, opgegane (huwelijk) en gefuseerde families worden bewaard, zodat een admin ze kan
+# terugzetten met /family archive (admin mode). Hoeveel er maximaal bewaard worden (oudste gaan eruit):
+archive:
+  max: 200
+
+# Verboden namen: woorden die niet in een familienaam of tag mogen. Hoofdletters, spaties, _ en - tellen niet
+# mee ("Na_Zi" = "nazi"), en het woord mag ook midden in de naam staan.
+# Verboden familiewapens: niet met de hand invullen, maar met /family crest ban (banner in je hand, admin mode).
+# Hetzelfde teken in andere kleuren is dan ook verboden. /family crest unban haalt hem er weer af.
+banned:
+  names:
+    - nazi
+    - hitler
+    - kkk
+  crests: []
+
+# Teksten van de menu's (/family list, /family editor). Variabelen in family-lore: %name% %tag% %kingdom%
+# %date% %owner% %members% %lineage% (regels met %lineage% alleen bij aftakkingen). De volledige afkomst staat
+# standaard alleen in /family check en in de "Kroniek van het Huis" in /family editor.
+gui:
+  overview-title: '&8⚜ Huizen van %kingdom%'
+  overview-all: 'alle kingdoms'
+  overview-none: 'zonder kingdom'
+  overview-show-all: '&e&l❖ Alle kingdoms'
+  overview-show-all-lore: '&7Families van alle kingdoms bekijken'
+  overview-show-own: '&e&l❖ Mijn kingdom'
+  overview-show-own-lore: '&7Alleen families uit jouw kingdom'
+  editor-title: '&8⚜ %name%'
+  member-title: '&8♛ %player%'
+  tree-title: '&8❦ Stamboom: %name%'
+  rename-title: '&8⚜ Een nieuw huis'
+  family-name: '&6&l⚜ &e&l%name% &6&l⚜'
+  family-lore:
+    - '&8&m                              '
+    - '&7Tag &8» &e[%tag%]'
+    - '&7Familiehoofd &8» &6♛ &f%owner%'
+    - '&7Leden &8» &f%members%'
+    - '&7Afstamming &8» &f%kingdom%'
+    - '&7Opgericht &8» &f%date%'
+    - '&8&m                              '
+  overview-click: '&e» Klik om het huis te betreden'
+  overview-empty: '&7Nog geen huizen in %kingdom%...'
+  overview-button: '&e&l❖ Alle huizen'
+  crest-name: '&6&l⚜ Familiewapen ⚜'
+  crest-copy: '&7Shift-klik: een kopie van het wapen'
+  lineage-name: '&6&l❧ Kroniek van het Huis'
+  lineage-original: '&7Een oorspronkelijke lijn, uit niemand voortgekomen.'
+  lineage-header: '&7Dit huis is ontstaan uit:'
+  lineage-entry: '&8 ┃ &e⚜ &f%line%'
+  lineage-footer: '&8 ┗ &6&l%name%'
+  crest-hint: '&eKlik op een banner in je inventory om het familiewapen te veranderen'
+  tree-button: '&a&l❦ Stamboom'
+  tree-button-lore: '&7Generaties, huwelijken en bloedbanden'
+  tree-help: '&6&l❦ Stamboom'
+  tree-help-lore:
+    - '&7Elke rij is een generatie, bovenaan de oudste.'
+    - '&7Links staat welke generatie het is.'
+    - '&d❤ &7= getrouwd/partners, ze staan naast elkaar.'
+    - '&7Kinderen staan onder hun ouders.'
+    - '&7Naamkleur = rang (goud = familiehoofd).'
+    - '&7Koppelen: klik op een lid in /family editor'
+    - '&7of /family tree link <parent|child|partner|sibling> <a> <b>'
+  tree-generation: '&%color%Generatie %gen%'
+  tree-generation-lore: '&7%count% lid/leden'
+  tree-partner: '&d❤ Getrouwd'
+  tree-partner-lore: '&7%a% &d& &7%b%'
+  tree-up: '&eOudere generaties'
+  tree-down: '&eJongere generaties'
+  tree-left: '&eNaar links'
+  tree-right: '&eNaar rechts'
+  tree-empty: '&7Nog niemand in de stamboom gekoppeld'
+  member-click: '&e» Klik om rang en stamboom te bewerken'
+  member-rank: '&7Rang &8» &6%value%'
+  # naamkleur per rang (in de stamboom en de editor)
+  rank-colors:
+    family-head: '&6&l'
+    successor: '&e'
+    spare-heir: '&e'
+    consort: '&d'
+    heirs-consort: '&d'
+    children-of-the-house: '&f'
+  member-partner: '&7Partner &8» &d❤ &f%value%'
+  member-parents: '&7Ouders &8» &f%value%'
+  member-children: '&7Kinderen &8» &f%value%'
+  member-siblings: '&7Broers/zussen &8» &f%value%'
+  member-origins: '&7Afkomst &8» &f%value%'
+  member-family: '&7Huis &8» &f%value%'
+  rank-current: '&a&l✔ Huidige rang'
+  rank-lore: '&e» Klik om deze rang te schenken'
+  rank-head-lore: '&cShift-klik om het familiehoofd over te dragen'
+  link-parent: '&aOuder koppelen'
+  link-parent-lore: '&7Kies wie de ouder van %player% is'
+  link-child: '&aKind koppelen'
+  link-child-lore: '&7Kies een kind van %player%'
+  link-partner: '&dPartner koppelen'
+  link-partner-lore: '&7Kies de partner van %player%'
+  link-sibling: '&bBroer/zus koppelen'
+  link-sibling-lore: '&7Kies een broer of zus van %player%'
+  unlink: '&cOntkoppelen'
+  unlink-lore: '&7Haal een relatie van %player% weg (ook met iemand uit een andere familie)'
+  pick-parent: '&8Ouder van %player%'
+  pick-child: '&8Kind van %player%'
+  pick-partner: '&8Partner van %player%'
+  pick-sibling: '&8Broer/zus van %player%'
+  pick-unlink: '&8Ontkoppelen van %player%'
+  pick-empty: '&7Geen andere leden'
+  kick: '&c&l⚔ Verbannen uit het huis'
+  kick-lore: '&7Shift-klik om %player% te verbannen'
+  rename-button: '&6Nieuwe naam kiezen'
+  rename-button-lore: '&7Deze aftakking moet een nieuwe naam en tag kiezen'
+  rename-current: '&7Nu: &f%name% &7[%tag%]'
+  rename-info:
+    - ''
+    - '&7Er zitten nu te veel families in de naam.'
+    - '&7Kies een nieuwe naam en tag voor je familie;'
+    - '&7daarmee begint een nieuwe lijn.'
+  rename-choose: '&6Kies een nieuwe naam en tag'
+  rename-choose-lore:
+    - '&7Klik: /family rename <naam> <tag>'
+    - '&7wordt in je chat klaargezet.'
+  rename-later: '&7Later'
+  rename-later-lore: '&7Je krijgt dit opnieuw bij het inloggen (of via /family editor)'
+  wedding-title: '&8❤ Het Trouwaltaar ❤'
+  wedding-groom: '&b&lBruidegom'
+  wedding-bride: '&d&lBruid'
+  wedding-family: '&7Familie: &f%name%'
+  wedding-is-chooser: '&eKiest hoe de lijnen verder gaan'
+  wedding-swap: '&d❤ Wissel bruidegom en bruid'
+  wedding-swap-lore: '&7Alleen het bruidspaar'
+  wedding-chooser: '&eKeuze bij: &f%player%'
+  wedding-chooser-lore: '&7Klik om te wisselen wie kiest (alleen het bruidspaar)'
+  wedding-option-absorb-line: '&6Lijn %a% gaat op in %b%'
+  wedding-option-absorb-line-lore:
+    - '&7Iedereen van %a% wordt lid van %b%.'
+    - '&7%a% bestaat daarna niet meer; de afkomst blijft zichtbaar.'
+  wedding-option-absorb-partner-line: '&6Lijn %b% gaat op in %a%'
+  wedding-option-absorb-partner-line-lore:
+    - '&7Andersom: iedereen van %b% wordt lid van %a%.'
+    - '&7%b% bestaat daarna niet meer; de afkomst blijft zichtbaar.'
+  wedding-option-join-partner: '&6%partner% gaat over naar %a%'
+  wedding-option-join-partner-lore:
+    - '&7Andersom: alleen %partner% gaat naar %a%.'
+    - '&7Beide lijnen gaan verder.'
+  wedding-option-join-person: '&6%player% gaat over naar %b%'
+  wedding-option-join-person-lore:
+    - '&7Alleen %player% gaat naar %b%.'
+    - '&7Beide lijnen gaan verder.'
+  wedding-option-new-line: '&6Samen een nieuwe lijn'
+  wedding-option-new-line-lore:
+    - '&7Het bruidspaar begint met zijn tweeën een nieuwe lijn.'
+    - '&7%a% en %b% gaan verder; het nieuwe hoofd kiest een naam en tag.'
+  wedding-option-branch: '&6Aftakking'
+  wedding-option-branch-lore:
+    - '&7Het bruidspaar vormt een eigen lijn "%groomfamily%-%bridefamily%".'
+    - '&7%groomfamily% en %bridefamily% gaan verder.'
+  wedding-option-selected: '&aGekozen'
+  wedding-option-click: '&eKlik om te kiezen (alleen %player%)'
+  wedding-option-locked: '&cAlleen als %player% hoofd of Opvolger is'
+  wedding-auto-heads: '&6Twee hoofden: de families fuseren'
+  wedding-auto-heads-lore:
+    - '&7%groomfamily% en %bridefamily% worden samen één lijn.'
+    - '&7De bruidegom blijft hoofd, de bruid wordt Gemaal.'
+  wedding-auto-head-successor: '&6Hoofd + Opvolger'
+  wedding-auto-head-successor-lore:
+    - '&7De Opvolger gaat over naar de familie van het hoofd.'
+    - '&7De Reserve-erfgenaam wordt de nieuwe Opvolger.'
+  wedding-auto-same-family: '&6Zelfde familie'
+  wedding-auto-same-family-lore:
+    - '&7Ze blijven in %groomfamily% en worden partners.'
+  wedding-start: '&6&l❤ Laat de klokken luiden! ❤'
+  wedding-start-lore: '&7Start de trouwerij. Alleen het hoofd van het huis van de bruid (%player%)'
+  wedding-cancel: '&cVerloving verbreken'
+  wedding-cancel-lore: '&7Shift-klik (alleen het bruidspaar)'
+  overview-archive: '&6&l⌛ Archief'
+  overview-archive-lore: '&7Opgeheven en samengevoegde families terugzetten'
+  archive-title: '&8⌛ Archief der Gevallen Huizen'
+  archive-item-name: '&e&l%name% &7[%tag%]'
+  archive-lore:
+    - '&7Reden: &f%reason%'
+    - '&7Gearchiveerd: &f%date%'
+    - '&7Familiehoofd: &f%owner%'
+    - '&7Leden (%count%): &f%members%'
+    - '&7Afstamming: &f%kingdom%'
+    - ''
+    - '&aKlik: terugzetten'
+    - '&cShift + rechtsklik: definitief verwijderen'
+  archive-empty: '&7Het archief is leeg'
+  archive-reason-disband: 'opgeheven'
+  archive-reason-absorbed: 'opgegaan in een andere lijn (huwelijk)'
+  archive-reason-fused: 'gefuseerd (huwelijk van twee hoofden)'
+  deceased-name: '&7✝ %name%'
+  deceased-lore:
+    - '&8✝ &7Overleden op &f%date%'
+    - '&7Was &8» &f%rank%'
+    - '&7Gespeeld door &8» &f%player%'
+  deceased-declare: '&8&l✝ &7Overleden verklaren'
+  deceased-declare-lore:
+    - '&7Het roleplay-karakter van %player% sterft.'
+    - '&7Het blijft als gedenkplaats in de stamboom staan,'
+    - '&7%player% speelt verder met een nieuw karakter.'
+    - '&e» Klik en typ de karakternaam in de chat'
+  deceased-revive: '&a&lTerug tot leven'
+  deceased-revive-lore: '&7Shift-klik: het was een vergissing'
+  deceased-remove: '&c&lGedenkplaats weghalen'
+  deceased-remove-lore: '&7Shift-klik: %player% en zijn relaties verdwijnen uit de stamboom'
+  previous: '&e« Vorige pagina'
+  next: '&eVolgende pagina »'
+  back: '&e« Terug'
+  close: '&c&l✖ &cSluiten'
+
+# Effecten bij de grote momenten: titels (messages.title-*/subtitle-*), geluiden en deeltjes.
+# Geluid = Minecraft-key (ook resourcepack-geluiden), meerdere met komma's, leeg = stil.
+# announce-* = bericht aan de hele server (messages.announce-*).
+effects:
+  enabled: true
+  particles: true
+  announce-created: true
+  announce-wedding: true
+  sounds:
+    gui-open: 'minecraft:item.book.page_turn'
+    created: 'minecraft:ui.toast.challenge_complete, minecraft:item.goat_horn.sound.0'
+    joined: 'minecraft:entity.player.levelup'
+    rank: 'minecraft:block.note_block.bell'
+    new-head: 'minecraft:item.goat_horn.sound.0'
+    engaged: 'minecraft:block.amethyst_block.chime'
+    wedding: 'minecraft:block.bell.use, minecraft:entity.firework_rocket.twinkle'
+    crest: 'minecraft:item.armor.equip_netherite'
+    disbanded: 'minecraft:block.beacon.deactivate'
+    deceased: 'minecraft:block.bell.resonate'
+
+# KingdomCraft sets the display name to '<kingdom prefix> <name><kingdom suffix>' itself, so chat plugins
+# that show the display name (EssentialsChat, ...) never see the family. FamilyCraft rebuilds it with this
+# format. Any KingdomCraft placeholder works; %player% is the player name. Disable if you do not want this.
+display-name:
+  enabled: true
+  format: '{kingdom_prefix} {family_prefix} %player%{kingdom_suffix}'
+
+messages:
+  prefix: '&6⚜ &8» &7'
+  no-permission: '&cJe hebt hier geen toestemming voor.'
+  players-only: '&cDit commando kan alleen door spelers gebruikt worden.'
+  unknown-subcommand: '&cOnbekend commando. Gebruik &f/family help&c.'
+  not-in-family: '&cJe zit niet in een familie.'
+  already-in-family: '&cJe zit al in een familie.'
+  not-owner: '&cAlleen het familiehoofd kan dit doen.'
+  owner-cannot-leave: '&cAls familiehoofd kun je niet vertrekken. Geef eerst iemand anders de rang Familiehoofd, of gebruik &f/family disband&c.'
+  usage-create: '&cGebruik: &f/family create <familie_naam> <familieafkorting>'
+  name-invalid: '&cDe familie naam mag geen cijfers bevatten, maximaal %max% tekens lang zijn en alleen letters bevatten (gebruik _ voor een spatie).'
+  tag-invalid: '&cDe familie tag mag geen cijfers bevatten en maximaal %max% tekens lang zijn.'
+  name-taken: '&cEr bestaat al een familie met die naam.'
+  tag-taken: '&cEr bestaat al een familie met die tag.'
+  not-enough-money: '&cEen familie starten kost &f%cost%&c, dat heb je niet.'
+  economy-unavailable: '&cEen familie starten kost geld maar er is geen economie plugin beschikbaar.'
+  created: '&eHet huis &6&l%name% &7[%tag%] &eis gesticht! Moge het eeuwen standhouden.'
+  usage-invite: '&cGebruik: &f/family invite <speler>'
+  usage-kick: '&cGebruik: &f/family kick <speler>'
+  player-not-found: '&cSpeler &f%player% &cis niet online.'
+  invite-self: '&cJe kunt jezelf niet uitnodigen.'
+  invite-target-in-family: '&c%player% zit al in een familie.'
+  invite-already-sent: '&c%player% heeft al een uitnodiging van jou.'
+  family-full: '&cDeze familie zit vol.'
+  invite-sent: '&aUitnodiging verstuurd naar &f%player%&a.'
+  invite-received: '&f%owner% &enodigt je uit in het huis &6&l%name% &7[%tag%]&e. Gebruik &f/family accept &eof &f/family cancel&e.'
+  no-invite: '&cJe hebt geen openstaande uitnodiging.'
+  nothing-to-cancel: '&cEr is niets om te annuleren (geen uitnodiging, geen openstaande disband).'
+  invite-expired: '&cDe uitnodiging is verlopen.'
+  invite-declined: '&7Je hebt de uitnodiging geweigerd.'
+  invite-declined-owner: '&7%player% heeft je uitnodiging geweigerd.'
+  invites-cancelled: '&7Je openstaande uitnodigingen zijn ingetrokken.'
+  joined: '&eWelkom in het huis &6&l%name% &7[%tag%]&e!'
+  joined-broadcast: '&f%player% &eheeft trouw gezworen aan het huis.'
+  left: '&7Je hebt het huis &f%name% &7verlaten.'
+  left-broadcast: '&f%player% &7heeft het huis verlaten.'
+  kick-not-member: '&c%player% zit niet in jouw familie.'
+  kick-self: '&cJe kunt jezelf niet kicken. Gebruik &f/family disband&c.'
+  kicked: '&c⚔ &f%player% &cis uit het huis verbannen.'
+  kicked-target: '&4⚔ &cJe bent verbannen uit het huis &f%name%&c.'
+  disband-confirm: '&eWeet je het zeker? Gebruik binnen %seconds% seconden nogmaals &f/family disband &eom je familie te verwijderen, of &f/family cancel&e.'
+  disband-cancelled: '&7Het verwijderen van je familie is geannuleerd.'
+  disbanded: '&4⚔ &cHet huis &f%name% &cis gevallen.'
+  disbanded-target: '&4⚔ &cHet huis &f%name% &cis gevallen.'
+  usage-check: '&cGebruik: &f/family check <familie_tag>'
+  family-not-found: '&cEr is geen familie met tag &f%tag%&c.'
+  members-header: '&6&l⚜ %name% &7[%tag%] &8(%count% leden)'
+  members-entry: '&8 ┃ &f%player% %role%'
+  role-rank: '&8(&6%rank%&8)'
+  role-deceased: '&8(&7✝ Overleden&8)'
+  no-lineage: '-'
+  unknown-player: '&cDie speler is niet gevonden (gebruik een naam van een online speler, een familielid of een UUID).'
+  usage-rank: '&cGebruik: &f/family rank give <speler|UUID> <rang>&c of &f/family rank list'
+  rank-unknown: '&cOnbekende rang. Zie &f/family rank list&c.'
+  rank-list-entry: '&8- &6%rank% &7(%id%)'
+  rank-not-member: '&cDie speler zit niet in deze familie.'
+  rank-already: '&cDie speler heeft die rang al.'
+  rank-full: '&cDie rang is al vergeven. Geef de huidige eerst een andere rang.'
+  rank-head-change: '&cHet familiehoofd verander je door iemand anders de rang Familiehoofd te geven.'
+  rank-given: '&6♛ &f%player% &eis verheven tot &6&l%rank%&e.'
+  rank-received: '&6♛ &eJe bent verheven tot &6&l%rank% &evan het huis &f%name%&e!'
+  usage-tree: '&cGebruik: &f/family tree link <parent|child|partner|sibling> <a> <b>&c, &f/family tree unlink <a> <b>&c, &f/family tree unlink <speler>&c (jezelf) of &f/family tree [tag]'
+  tree-self: '&cJe kunt iemand niet aan zichzelf koppelen.'
+  tree-already: '&cDie relatie bestaat al.'
+  tree-max-parents: '&cIemand kan maximaal 2 ouders hebben.'
+  tree-cycle: '&cDat kan niet: dan wordt iemand zijn eigen voorouder.'
+  tree-has-partner: '&cEen van beiden heeft al een partner. Ontkoppel die eerst.'
+  tree-not-member: '&cJe kunt alleen leden van je eigen familie koppelen.'
+  tree-no-relation: '&cTussen die twee is geen relatie.'
+  tree-unlink-ask-head: '&cJullie zitten in dezelfde familie: vraag het familiehoofd om te ontkoppelen.'
+  tree-sibling-parent: '&cEen ouder of kind (of grootouder, kleinkind...) kan niet ook broer/zus zijn.'
+  tree-linked-parent: '&f%a% &ais nu ouder van &f%b%&a.'
+  tree-linked-partner: '&f%a% &aen &f%b% &azijn nu partners.'
+  tree-linked-sibling: '&f%a% &aen &f%b% &azijn nu broer/zus.'
+  tree-unlinked: '&7Relatie tussen &f%a% &7en &f%b% &7weggehaald.'
+  crest-hint: '&eKlik in &f/family editor &eop een banner in je inventory, of houd een banner vast en gebruik &f/family crest&e.'
+  crest-no-banner: '&cDat is geen banner.'
+  crest-set: '&eHet nieuwe wapen van &f%name% &ewappert!'
+  crest-none: '&cDit huis heeft nog geen familiewapen.'
+  crest-given: '&eEen kopie van het wapen van &f%name% &7[%tag%] &eligt in je inventory.'
+  usage-marriage: '&cJe bent niet verloofd. Vraag iemand ten huwelijk met &f/enlope <speler>&c; daarna opent &f/family marriage &chet trouwmenu.'
+  usage-enlope: '&cGebruik: &f/enlope <speler>&c (verloven), &f/enlope accept&c, &f/enlope deny&c of &f/enlope cancel'
+  engage-no-family: '&cJullie moeten allebei in een familie zitten om te verloven.'
+  engage-already-engaged: '&cEen van jullie is al verloofd.'
+  engage-no-request: '&cNiemand heeft je ten huwelijk gevraagd.'
+  engage-not-engaged: '&cJe bent niet verloofd.'
+  engage-sent: '&aJe hebt &f%player% &aten huwelijk gevraagd.'
+  engage-request: '&d❤ &f%player% &dknielt neer en vraagt je ten huwelijk!'
+  engage-button-accept: '&a&l[Ja]'
+  engage-button-deny: '&c&l[Nee]'
+  engage-accepted: '&d❤ &f%groom% &den &f%bride% &dzijn verloofd! Stel in het trouwmenu in wie bruidegom/bruid is en wie kiest.'
+  engage-denied: '&7Je hebt het aanzoek afgewezen.'
+  engage-denied-other: '&c%player% heeft je aanzoek afgewezen.'
+  engage-cancelled: '&c%player% heeft de verloving verbroken.'
+  wedding-button-open: '&6&l[Trouwmenu]'
+  wedding-head-notice: '&f%groom% &aen &f%bride% &azijn verloofd. Als hoofd van de familie van de bruid start jij de trouwerij.'
+  wedding-not-couple: '&cAlleen het bruidspaar kan dit veranderen.'
+  wedding-not-chooser: '&cAlleen degene die de keuze heeft kan kiezen.'
+  wedding-option-not-allowed: '&cDie keuze kan alleen het hoofd of de Opvolger van zijn/haar lijn maken.'
+  wedding-not-bride-head: '&cAlleen het hoofd van de familie van de bruid kan de trouwerij starten.'
+  wedding-done: '&d❤ &6De klokken luiden voor &f%groom% &6en &f%bride%&6! %outcome%'
+  wedding-outcome-same-family: '&7Ze blijven in &f%name%&7.'
+  wedding-outcome-heads: '&7De lijnen &f%lines% &7zijn gefuseerd tot &f%name% &7[%tag%].'
+  wedding-outcome-head-successor: '&7De erfgenaam is overgegaan naar &f%name%&7.'
+  wedding-outcome-absorb-line: '&7Een hele lijn is opgegaan in &f%name%&7.'
+  wedding-outcome-absorb-partner-line: '&7Een hele lijn is opgegaan in &f%name%&7.'
+  wedding-outcome-join-partner: '&7De partner is overgegaan naar &f%name%&7; beide lijnen gaan verder.'
+  wedding-outcome-join-person: '&7De partner is overgegaan naar &f%name%&7; beide lijnen gaan verder.'
+  wedding-outcome-new-line: '&7Ze beginnen samen een nieuwe lijn; kies een naam.'
+  wedding-outcome-branch: '&7Ze vormen de aftakking &f%name% &7[%tag%].'
+  marriage-related: '&cFamilie kan niet met elkaar trouwen (broer/zus, ouder/kind of grootouder/kleinkind).'
+  marriage-self: '&cIemand kan niet met zichzelf trouwen.'
+  marriage-groom-no-family: '&cDe bruidegom zit niet in een familie.'
+  marriage-bride-no-family: '&cDe bruid zit niet in een familie. Nodig haar gewoon uit met &f/family invite&c.'
+  marriage-same-family: '&cBruidegom en bruid zitten in dezelfde familie.'
+  marriage-already-married: '&cDe bruidegom of de bruid is al getrouwd.'
+  marriage-no-successor: '&cDe bruidegom of bruid is familiehoofd, maar die familie heeft geen Opvolger of Reserve-erfgenaam om het over te nemen.'
+  new-head: '&6♛ &f%player% &eis nu het hoofd van het huis &6&l%name%&e. Lang leve het hoofd!'
+  rename-needed: '&eJe aftakking &f%name% &eheeft te veel families in de naam: kies een nieuwe naam en tag.'
+  rename-suggest: '&eKlik hier en vul aan: &f/family rename <naam> <tag>'
+  rename-not-needed: '&cJe familie hoeft geen nieuwe naam te kiezen.'
+  list-no-kingdom: '&eJe zit niet in een kingdom: je ziet de families zonder kingdom. Gebruik &f/family list <kingdom>&e of &f/family list all&e.'
+  list-unknown: '&cOnbekend kingdom of familie: &f%arg%&c. Gebruik &f/family list all&c.'
+  usage-rename: '&cGebruik: &f/family rename <nieuwe_naam> <tag>'
+  renamed: '&eHet huis &f%old% &eheet voortaan &6&l%name% &7[%tag%]&e.'
+  info-border: '&6&m                                        '
+  info-name: '&6&l⚜ &e&l%name% &6&l⚜'
+  info-tag: '&7Tag &8» &e%tag%'
+  info-owner: '&7Familiehoofd &8» &6♛ &f%owner% &8(&7%members% leden&8)'
+  info-kingdom: '&7Afstamming &8» &f%kingdom%'
+  info-created: '&7Opgericht &8» &f%date%'
+  info-lineage: '&7Afkomst &8»'
+  info-lineage-entry: '&8 ┃ &e⚜ &f%line%'
+  title-created: '&6&l⚜ Huis Gesticht ⚜'
+  subtitle-created: '&e%name% &7[%tag%]'
+  title-joined: '&6&l⚜ Welkom ⚜'
+  subtitle-joined: '&ein het huis &6%name%'
+  title-rank: ''
+  subtitle-rank: '&6♛ &eVerheven tot &6&l%rank%'
+  title-new-head: '&6&l♛ Familiehoofd ♛'
+  subtitle-new-head: '&evan het huis &6%name%'
+  title-engaged: '&d&l❤ Verloofd ❤'
+  subtitle-engaged: '&f%groom% &d& &f%bride%'
+  title-wedding: '&d&l❤ Getrouwd ❤'
+  subtitle-wedding: '&f%groom% &d& &f%bride%'
+  title-crest: ''
+  subtitle-crest: '&6⚜ &eHet nieuwe wapen wappert'
+  title-disbanded: '&4&l⚔ Gevallen ⚔'
+  subtitle-disbanded: '&cHet huis %name% bestaat niet meer'
+  announce-created: '&6⚜ &eEen nieuw huis is opgestaan: &6&l%name% &7[%tag%]&e, gesticht door &f%player%&e!'
+  announce-wedding: '&d❤ &eDe klokken luiden in het rijk: &f%groom% &een &f%bride% &ezijn getrouwd!'
+  no-kingdom: 'Geen'
+  date-format: 'dd/MM/yyyy HH:mm:ss'
+  help:
+    - '&8» &6/family create <naam> <afkorting> &8- &7Maak een familie'
+    - '&8» &6/family invite <speler> &8- &7Nodig een speler uit'
+    - '&8» &6/family accept &8- &7Accepteer een uitnodiging'
+    - '&8» &6/family cancel &8- &7Weiger/annuleer een uitnodiging of verwijdering'
+    - '&8» &6/family kick <speler> &8- &7Zet een lid uit je familie'
+    - '&8» &6/family leave &8- &7Verlaat je familie'
+    - '&8» &6/family disband &8- &7Verwijder je familie'
+    - '&8» &6/family check <tag> &8- &7Bekijk info over een familie'
+    - '&8» &6/family members [tag] &8- &7Bekijk de leden'
+  usage-dev: '&cGebruik: &f/family dev [on|off]&c, &ffake <naam> [tag]&c, &ffakefamily <hoofd> <naam> <tag>&c, &fenlope <a> <b>&c, &flist&c, &fclear'
+  dev-on: '&aDev mode &2aan&a: je mag nu alles wat een familiehoofd/admin mag, ook in andere families.'
+  dev-off: '&7Dev mode uit.'
+  dev-not-on: '&cZet eerst dev mode aan met &f/family dev&c.'
+  dev-fake-exists: '&cDie nep-speler bestaat al.'
+  dev-fake-added: '&aNep-speler &f%player% &ais lid van &f%name%&a.'
+  dev-fake-family: '&aNep-familie &f%name% &7[%tag%] &amet nep-hoofd &f%player% &agemaakt.'
+  dev-engaged: '&d❤ &f%groom% &den &f%bride% &dzijn verloofd (dev). Het trouwmenu is open.'
+  dev-list: '&7Nep-spelers (%count%): &f%list%'
+  dev-cleared: '&a%count% nep-spelers weggehaald, %families% nep-families opgeheven.'
+  dev-help:
+    - '&6Dev mode (alleen om te testen):'
+    - '&8» &6/family dev fake <naam> [tag] &8- &7nep-lid in je familie (of familie met tag)'
+    - '&8» &6/family dev fakefamily <hoofd> <naam> <tag> &8- &7nep-familie met nep-hoofd'
+    - '&6/family dev enlope <a> <b> &7(of &6fake enlope&7) - direct verloven, opent het trouwmenu'
+    - '&7/enlope <nep-speler> in dev mode: de nep-speler zegt meteen ja.'
+    - '&8» &6/family dev list &7/ &6clear &8- &7nep-spelers bekijken / alles opruimen'
+    - '&7In dev mode mag je alles wat een hoofd/admin mag: editor van elke familie,'
+    - '&7rangen, stamboom, rollen en keuze in het trouwmenu, trouwerij starten.'
+  admin-on: '&cAdmin mode &4aan&c: je kunt nu elke familie bewerken. &7(/family force om uit te zetten)'
+  admin-off: '&7Admin mode uit: je bewerkt alleen je eigen familie (als hoofd).'
+  admin-required: '&cDit kan alleen in admin mode: &f/family force'
+  usage-deceased: '&cGebruik: &f/family deceased <lid> [karakternaam]&c, &f/family deceased revive <karakter>&c of &f/family deceased remove <karakter>'
+  deceased-suggest: '&8✝ &7Klik hier en typ de naam van het overleden karakter van &f%player% &7(leeg = spelersnaam).'
+  deceased-broadcast: '&8✝ &7%character% &8(%player%) &7is overleden. Het huis &f%name% &7rouwt. Rust in vrede.'
+  deceased-already: '&cDat karakter is al overleden.'
+  deceased-name-invalid: '&cDie karakternaam is ongeldig (maximaal 40 tekens).'
+  deceased-no-heir: '&cHet hoofd kan pas overlijden als er een Opvolger of Reserve-erfgenaam is die het overneemt.'
+  deceased-no-rank: '&cEen overleden karakter kan geen rang krijgen.'
+  deceased-kick: '&cEen overleden karakter kick je niet; gebruik &f/family deceased remove <karakter>&c.'
+  deceased-cannot: '&cDat kan niet met een overleden karakter.'
+  deceased-not-found: '&cGeen overleden karakter met die naam gevonden.'
+  deceased-revive-gone: '&cDe speler van dit karakter zit niet meer in deze familie.'
+  deceased-revive-conflict: '&cDe speler heeft al nieuwe relaties in de stamboom; ontkoppel die eerst.'
+  deceased-revived: '&a%character% leeft weer en is terug bij &f%player%&a.'
+  deceased-removed: '&7De gedenkplaats van %character% is weggehaald.'
+  divorce-deceased: '&7Je partner is overleden; je kunt gewoon opnieuw trouwen.'
+  title-deceased: '&8&l✝ Rust in vrede ✝'
+  subtitle-deceased: '&7%character% is overleden'
+  name-banned: '&cDie naam of tag is niet toegestaan.'
+  crest-banned: '&cDit familiewapen is niet toegestaan.'
+  crest-ban-empty: '&cEen banner zonder patronen kun je niet verbieden.'
+  crest-ban-added: '&aDit wapen is nu verboden (ook in andere kleuren). &f%count% &afamilie(s) kregen weer het standaardwapen.'
+  crest-ban-exists: '&eDit wapen staat al op de verboden lijst.'
+  crest-ban-removed: '&aDit wapen is niet meer verboden.'
+  crest-ban-missing: '&cDit wapen staat niet op de verboden lijst.'
+  crest-reset: '&aHet familiewapen van &f%name% &ais teruggezet naar de standaard.'
+  crest-reset-target: '&eHet familiewapen van &f%name% &eis door een admin teruggezet (niet toegestaan).'
+  usage-crest: '&cGebruik: &f/family crest [tag]&c, &f/family crest ban&c, &f/family crest unban&c of &f/family crest reset <tag>'
+  usage-archive: '&cGebruik: &f/family archive&c, &f/family archive list&c, &f/family archive restore <id>&c of &f/family archive delete <id>'
+  archive-empty: '&7Het archief is leeg.'
+  archive-line: '&8- &f%id% &d%name% &7[%tag%] &8| &7%reason%, %date%, %count% leden'
+  archive-not-found: '&cDie familie staat niet (meer) in het archief.'
+  archive-tag-taken: '&cDe tag van deze familie is nu van een andere familie. Laat die eerst hernoemen.'
+  archive-name-taken: '&cDe naam van deze familie is nu van een andere familie. Laat die eerst hernoemen.'
+  archive-no-members: '&cNiemand kan terug: alle leden zijn nu hoofd van een andere familie.'
+  archive-restored: '&a%name% &7[%tag%] &ais teruggezet met &f%count% &aleden.'
+  archive-skipped: '&eNiet teruggezet (hoofd van een andere familie): &f%players%'
+  archive-restored-target: '&aJe familie &f%name% &ais door een admin teruggezet.'
+  archive-deleted: '&7%name% [%tag%] is definitief uit het archief gehaald.'
+  usage-divorce: '&cGebruik: &f/divorce&c (scheiding aanvragen), &f/divorce accept&c of &f/divorce deny'
+  divorce-not-married: '&cJe bent niet getrouwd.'
+  divorce-no-request: '&cJe partner heeft geen scheiding aangevraagd.'
+  divorce-sent: '&7Je hebt &f%player% &7gevraagd om te scheiden.'
+  divorce-request: '&f%player% &cwil scheiden.'
+  divorce-button-accept: '&c&l[Scheiden]'
+  divorce-button-deny: '&a&l[Getrouwd blijven]'
+  divorce-denied: '&7Jullie blijven getrouwd.'
+  divorce-denied-other: '&a%player% wil getrouwd blijven.'
+  divorce-done: '&7&f%a% &7en &f%b% &7zijn gescheiden.'
+  help-extra:
+    - '&8» &6/family list [kingdom|all] &8- &7Families van je kingdom, een kingdom of alle'
+    - '&8» &6/family editor &8- &7Familiewapen, rangen en stamboom bewerken'
+    - '&8» &6/family rank give <speler> <rang> &8- &7Geef een lid een rang'
+    - '&8» &6/family tree link <parent|child|partner|sibling> <a> <b> &8- &7Stamboom koppelen'
+    - '&8» &6/enlope <speler> &8- &7Iemand ten huwelijk vragen (verloving)'
+    - '&8» &6/family marriage &8- &7Trouwmenu (rollen, keuze, starten)'
+    - '&8» &6/family crest &8- &7Banner in je hand als familiewapen'
+    - '&8» &6/divorce &8- &7Scheiden (je partner moet bevestigen)'
+    - '&8» &6/family force &8- &7Admin mode (staff)'
+    - '&8» &6/family archive &8- &7Archief: families terugzetten (admin mode)'
+    - '&8» &6/family crest ban|unban &8- &7Banner in je hand verbieden (admin mode)'
+    - '&8» &6/family crest reset <tag> &8- &7Wapen terugzetten (admin mode)'
+    - '&8» &6/family admin getcrest [tag] &8- &7Kopie van het familiewapen (andere huizen: admin mode)'
+    - '&8» &6/family deceased <lid> [karakternaam] &8- &7Roleplay-karakter overleden verklaren'
+    - '&8» &6/family deceased revive|remove <karakter> &8- &7Terugdraaien of gedenkplaats weghalen'

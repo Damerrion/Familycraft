@@ -1,0 +1,225 @@
+# Oude standaardwaarden per eerdere versie van family.yml. Staat zo'n waarde nog ongewijzigd in
+# plugins/FenixCore/family.yml, dan vervangt FenixCore hem door de nieuwe standaard (bv. Engelse rangnamen).
+# Elke sectie (v1, v2, ...) is een oudere versie; nieuwe versies onderaan toevoegen.
+v1:
+  ranks:
+    family-head:
+      name: Family-head
+    successor:
+      name: Successor
+    spare-heir:
+      name: Spare-Heir
+    consort:
+      name: Consort
+    heirs-consort:
+      name: Heir's Consort
+    children-of-the-house:
+      name: Children of the House
+  gui:
+    overview-title: '&8Families'
+    overview-empty: '&7Er zijn nog geen families'
+    tree-help-lore:
+    - '&7Elke rij is een generatie, bovenaan de oudste.'
+    - '&7Partners staan naast elkaar.'
+    - '&7Koppelen: klik op een lid in /family editor'
+    - '&7of /family tree link <parent|child|partner|sibling> <a> <b>'
+  messages:
+    owner-cannot-leave: '&cAls familiehoofd kun je niet vertrekken. Geef eerst iemand anders de rang Family-head, of gebruik &f/family disband&c.'
+    rank-head-change: '&cHet familiehoofd verander je door iemand anders de rang Family-head te geven.'
+    usage-marriage: '&cGebruik: &f/family marriage <bruidegom> <bruid>&c, &f/family marriage accept&c of &f/family marriage deny'
+    marriage-no-successor: '&cDe bruidegom of bruid is familiehoofd, maar die familie heeft geen Successor of Spare-Heir om het over te nemen.'
+    help-extra:
+    - '&6/family list &7- Overzicht van alle families'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/family marriage <bruidegom> <bruid> &7- Huwelijksaanzoek (hoofd)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'
+v2:
+  messages:
+    usage-marriage: '&cGebruik: &f/family marriage <bruidegom> <bruid>&c, &f/family marriage accept&c of &f/family marriage deny'
+    help-extra:
+    - '&6/family list [kingdom|all] &7- Families van je kingdom, een kingdom of alle'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/family marriage <bruidegom> <bruid> &7- Huwelijksaanzoek (hoofd)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'
+v3:
+  gui:
+    unlink-lore: '&7Haal een relatie van %player% weg'
+  messages:
+    usage-tree: '&cGebruik: &f/family tree link <parent|child|partner|sibling> <a> <b>&c, &f/family tree unlink <a> <b>&c of &f/family tree [tag]'
+v4:
+  gui:
+    wedding-option-new-line-lore:
+    - '&7%a% en %b% gaan samen verder in een nieuwe lijn.'
+    - '&7Het nieuwe hoofd kiest een nieuwe naam en tag.'
+  messages:
+    wedding-outcome-new-line: '&7&f%lines% &7gaan samen verder als een nieuwe lijn; kies een naam.'
+    dev-help:
+    - '&6Dev mode (alleen om te testen):'
+    - '&6/family dev fake <naam> [tag] &7- nep-lid in je familie (of familie met tag)'
+    - '&6/family dev fakefamily <hoofd> <naam> <tag> &7- nep-familie met nep-hoofd'
+    - '&6/family dev enlope <a> <b> &7- direct verloven, opent het trouwmenu'
+    - '&6/family dev list &7/ &6clear &7- nep-spelers bekijken / alles opruimen'
+    - '&7In dev mode mag je alles wat een hoofd/admin mag: editor van elke familie,'
+    - '&7rangen, stamboom, rollen en keuze in het trouwmenu, trouwerij starten.'
+v5:
+  messages:
+    help-extra:
+    - '&6/family list [kingdom|all] &7- Families van je kingdom, een kingdom of alle'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/enlope <speler> &7- Iemand ten huwelijk vragen (verloving)'
+    - '&6/family marriage &7- Trouwmenu (rollen, keuze, starten)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'
+v6:
+  messages:
+    help-extra:
+    - '&6/family list [kingdom|all] &7- Families van je kingdom, een kingdom of alle'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/enlope <speler> &7- Iemand ten huwelijk vragen (verloving)'
+    - '&6/family marriage &7- Trouwmenu (rollen, keuze, starten)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'
+    - '&6/divorce &7- Scheiden (je partner moet bevestigen)'
+    - '&6/family force &7- Admin mode (staff)'
+v7:
+  chat-hover:
+    lines:
+    - '&5&m                              '
+    - '&6Volledige naam: &7%name%'
+    - '&6Afgekorte naam: &7%tag%'
+    - '&6Familie afstamming: &7%kingdom%'
+    - '&6Datum opgericht: &7%date%'
+    - '&6Eigenaar: &7%owner% &8(&7%members% leden&8)'
+    - '&5&m                              '
+  ranks:
+    consort:
+      max: 0
+    heirs-consort:
+      max: 0
+  gui:
+    overview-title: '&8Families: %kingdom%'
+    overview-show-all: '&eAlle kingdoms'
+    overview-show-own: '&eMijn kingdom'
+    editor-title: '&8Familie: %name%'
+    member-title: '&8Lid: %player%'
+    tree-title: '&8Stamboom: %name%'
+    rename-title: '&8Nieuwe familie configureren'
+    family-name: '&d%name%'
+    family-lore:
+    - '&7Tag: &f%tag%'
+    - '&7Familiehoofd: &f%owner%'
+    - '&7Leden: &f%members%'
+    - '&7Afstamming: &f%kingdom%'
+    - '&7Afkomst: &f%lineage%'
+    - '&7Opgericht: &f%date%'
+    overview-click: '&eKlik voor de leden en de stamboom'
+    overview-empty: '&7Geen families in %kingdom%'
+    overview-button: '&eAlle families'
+    crest-name: '&6Familiewapen'
+    tree-button: '&aStamboom'
+    tree-button-lore: '&7Generaties, partners en broers/zussen'
+    tree-help: '&6Stamboom'
+    member-click: '&eKlik om rang en stamboom te bewerken'
+    member-rank: '&7Rang: &6%value%'
+    member-partner: '&7Partner: &f%value%'
+    member-parents: '&7Ouders: &f%value%'
+    member-children: '&7Kinderen: &f%value%'
+    member-siblings: '&7Broers/zussen: &f%value%'
+    member-origins: '&7Afkomst: &f%value%'
+    member-family: '&7Familie: &f%value%'
+    rank-current: '&aHuidige rang'
+    rank-lore: '&eKlik om deze rang te geven'
+    kick: '&cUit de familie zetten'
+    kick-lore: '&7Shift-klik om %player% te kicken'
+    wedding-title: '&8Trouwmenu'
+    wedding-groom: '&bBruidegom'
+    wedding-bride: '&dBruid'
+    wedding-start: '&6&lStart de trouwerij'
+    wedding-start-lore: '&7Alleen het hoofd van de familie van de bruid (%player%)'
+    overview-archive: '&6Archief'
+    archive-title: '&8Archief'
+    archive-item-name: '&d%name% &7[%tag%]'
+    previous: '&eVorige pagina'
+    next: '&eVolgende pagina'
+    back: '&eTerug'
+    close: '&cSluiten'
+  messages:
+    prefix: '&8[&6Familie&8] &7'
+    created: '&aJe familie &f%name% &7[%tag%] &ais aangemaakt!'
+    invite-received: '&f%owner% &anodigt je uit voor familie &f%name% &7[%tag%]&a. Gebruik &f/family accept &aof &f/family cancel&a.'
+    joined: '&aJe bent lid geworden van familie &f%name% &7[%tag%]&a.'
+    joined-broadcast: '&f%player% &aheeft zich bij de familie aangesloten.'
+    left: '&7Je hebt familie &f%name% &7verlaten.'
+    left-broadcast: '&f%player% &7heeft de familie verlaten.'
+    kicked: '&f%player% &7is uit de familie gezet.'
+    kicked-target: '&cJe bent uit familie &f%name% &cgezet.'
+    disbanded: '&7Familie &f%name% &7is opgeheven.'
+    disbanded-target: '&cJe familie &f%name% &cis opgeheven.'
+    members-header: '&6Leden van &f%name% &7[%tag%] &8(%count%)'
+    members-entry: '&8- &f%player% %role%'
+    rank-given: '&f%player% &aheeft nu de rang &6%rank%&a.'
+    rank-received: '&aJe hebt de rang &6%rank% &agekregen in familie &f%name%&a.'
+    crest-set: '&aHet familiewapen van &f%name% &ais aangepast.'
+    engage-request: '&f%player% &dvraagt je ten huwelijk!'
+    wedding-done: '&6❤ Getrouwd: &f%groom% &6en &f%bride%&6! %outcome%'
+    new-head: '&f%player% &ais nu het familiehoofd van &f%name%&a.'
+    renamed: '&aDe familie &f%old% &aheet nu &f%name% &7[%tag%]&a.'
+    info-border: '&5&m--------------------------------'
+    info-name: '&6Volledige naam: &7%name%'
+    info-tag: '&6Afgekorte naam: &7%tag%'
+    info-kingdom: '&6Familie afstamming: &7%kingdom%'
+    info-created: '&6Datum opgericht: &7%date%'
+    help:
+    - '&6/family create <naam> <afkorting> &7- Maak een familie'
+    - '&6/family invite <speler> &7- Nodig een speler uit'
+    - '&6/family accept &7- Accepteer een uitnodiging'
+    - '&6/family cancel &7- Weiger/annuleer een uitnodiging of verwijdering'
+    - '&6/family kick <speler> &7- Zet een lid uit je familie'
+    - '&6/family leave &7- Verlaat je familie'
+    - '&6/family disband &7- Verwijder je familie'
+    - '&6/family check <tag> &7- Bekijk info over een familie'
+    - '&6/family members [tag] &7- Bekijk de leden'
+    dev-help:
+    - '&6Dev mode (alleen om te testen):'
+    - '&6/family dev fake <naam> [tag] &7- nep-lid in je familie (of familie met tag)'
+    - '&6/family dev fakefamily <hoofd> <naam> <tag> &7- nep-familie met nep-hoofd'
+    - '&6/family dev enlope <a> <b> &7(of &6fake enlope&7) - direct verloven, opent het trouwmenu'
+    - '&7/enlope <nep-speler> in dev mode: de nep-speler zegt meteen ja.'
+    - '&6/family dev list &7/ &6clear &7- nep-spelers bekijken / alles opruimen'
+    - '&7In dev mode mag je alles wat een hoofd/admin mag: editor van elke familie,'
+    - '&7rangen, stamboom, rollen en keuze in het trouwmenu, trouwerij starten.'
+    help-extra:
+    - '&6/family list [kingdom|all] &7- Families van je kingdom, een kingdom of alle'
+    - '&6/family editor &7- Familiewapen, rangen en stamboom bewerken'
+    - '&6/family rank give <speler> <rang> &7- Geef een lid een rang'
+    - '&6/family tree link <parent|child|partner|sibling> <a> <b> &7- Stamboom koppelen'
+    - '&6/enlope <speler> &7- Iemand ten huwelijk vragen (verloving)'
+    - '&6/family marriage &7- Trouwmenu (rollen, keuze, starten)'
+    - '&6/family crest &7- Banner in je hand als familiewapen'
+    - '&6/divorce &7- Scheiden (je partner moet bevestigen)'
+    - '&6/family force &7- Admin mode (staff)'
+    - '&6/family archive &7- Archief: families terugzetten (admin mode)'
+    - '&6/family crest ban|unban &7- Banner in je hand verbieden (admin mode)'
+    - '&6/family crest reset <tag> &7- Wapen terugzetten (admin mode)'
+v8:
+  messages:
+    help-extra:
+    - '&8» &6/family list [kingdom|all] &8- &7Families van je kingdom, een kingdom of alle'
+    - '&8» &6/family editor &8- &7Familiewapen, rangen en stamboom bewerken'
+    - '&8» &6/family rank give <speler> <rang> &8- &7Geef een lid een rang'
+    - '&8» &6/family tree link <parent|child|partner|sibling> <a> <b> &8- &7Stamboom koppelen'
+    - '&8» &6/enlope <speler> &8- &7Iemand ten huwelijk vragen (verloving)'
+    - '&8» &6/family marriage &8- &7Trouwmenu (rollen, keuze, starten)'
+    - '&8» &6/family crest &8- &7Banner in je hand als familiewapen'
+    - '&8» &6/divorce &8- &7Scheiden (je partner moet bevestigen)'
+    - '&8» &6/family force &8- &7Admin mode (staff)'
+    - '&8» &6/family archive &8- &7Archief: families terugzetten (admin mode)'
+    - '&8» &6/family crest ban|unban &8- &7Banner in je hand verbieden (admin mode)'
+    - '&8» &6/family crest reset <tag> &8- &7Wapen terugzetten (admin mode)'
+    - '&8» &6/family admin getcrest [tag] &8- &7Kopie van het familiewapen (andere huizen: admin mode)'

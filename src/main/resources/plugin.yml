@@ -1,22 +1,159 @@
-name: FamilyCraft
-main: com.familycraft.FamilyCraftPlugin
+name: FenixCore
 version: ${project.version}
-description: Family system (families with a name and tag prefix) for KingdomCraft
-api-version: 1.13
-depend: [KingdomCraft]
-softdepend: [Vault]
+main: nl.fenix.core.FenixCore
+api-version: "1.21"
+description: FenixKingdom-addon voor KingdomCraft (wands + families)
+softdepend: [KingdomCraft, LuckPerms, KingdomWands, ProtocolLib, Vault, KingdomWandsAddon, FamilyCraft]
 commands:
+  fenixcore:
+    description: FenixCore info en configs herladen
+    usage: /fenixcore reload <all|family|kwa> | web [newtoken]
+    aliases: [fenix]
+  enlope:
+    description: Iemand ten huwelijk vragen (verloving), daarna het trouwmenu
+    usage: /enlope <speler>|accept|deny|cancel
+    aliases: [elope, verloven]
+  divorce:
+    description: Scheiden van je partner (de partner moet bevestigen)
+    usage: /divorce [accept|deny]
+    aliases: [scheiden]
+  kwa:
+    description: Wands hoofdcommando (zoals /kw)
+    usage: /kwa [get|bind|unbind|spells|effect|create|info|help|dev|check|reload]
   family:
-    description: Manage your family
+    description: Je familie beheren
     usage: /family <accept|cancel|create|disband|check|invite|kick|leave|members|info>
     aliases: [familie, fam]
+# Alles staat standaard aan voor operators. Niet-ops krijgen het via LuckPerms.
+# De permissies zijn dezelfde als in de losse plugins KingdomWandsAddon (kwa.*) en FamilyCraft (family.*).
 permissions:
+  fenixcore.reload:
+    description: /fenixcore reload (configs herladen)
+    default: op
+  fenixcore.web:
+    description: /fenixcore web - link naar de admin-website
+    default: op
+  family.*:
+    description: Alle family-permissies
+    default: op
+    children:
+      family.use: true
+      family.info: true
+      family.list: true
+      family.editor: true
+      family.rank: true
+      family.tree: true
+      family.crest: true
+      family.rename: true
+      family.marriage: true
+      family.divorce: true
+      family.deceased: true
+      family.create: true
+      family.dev: true
+      family.admin: true
   family.use:
-    description: Use /family
+    description: /family gebruiken (invite, accept, cancel, kick, leave, disband, help)
+    default: true
+  family.info:
+    description: /family check, info, members
+    default: true
+  family.list:
+    description: /family list (overzicht van families)
+    default: true
+  family.editor:
+    description: /family editor openen (bewerken kan alleen het hoofd van de eigen familie)
+    default: true
+  family.rank:
+    description: Rangen geven in je eigen familie (als hoofd)
+    default: true
+  family.tree:
+    description: Stamboom koppelen/ontkoppelen (als hoofd), eigen relaties ontkoppelen
+    default: true
+  family.crest:
+    description: Familiewapen veranderen (als hoofd)
+    default: true
+  family.deceased:
+    description: Roleplay-karakter van een lid overleden verklaren (als hoofd)
+    default: true
+  family.rename:
+    description: Nieuwe naam kiezen als de familie dat moet (als hoofd)
+    default: true
+  family.marriage:
+    description: /enlope en het trouwmenu (/family marriage)
+    default: true
+  family.divorce:
+    description: /divorce
     default: true
   family.create:
-    description: Create a family (give this to players who bought one)
+    description: Een familie maken (geef dit aan spelers die er een gekocht hebben)
+    default: op
+  family.dev:
+    description: /family dev - dev mode om alles alleen te testen
     default: op
   family.admin:
-    description: Disband / kick in any family and bypass the creation cost
+    description: /family force - admin mode voor staff (andere families bewerken, trouwerij forceren, ...)
+    default: op
+  # ---- wands (zelfde opzet als KingdomWands Premium: kingdomwands.* -> kwa.*)
+  kwa.*:
+    description: Alle KingdomWandsAddon-permissies in 1 (zoals kw.*)
+    default: op
+    children:
+      kwa.use: true
+      kwa.use.tygron: true
+      kwa.wand.tygron: true
+      kwa.getwand: true
+      kwa.bind: true
+      kwa.unbind: true
+      kwa.spells: true
+      kwa.effect: true
+      kwa.create: true
+      kwa.admin: true
+      kwa.dev: true
+      kwa.spells.*: true
+  kwa.use:
+    description: Alle wands gebruiken (zoals kingdomwands.use). Per wand kan ook met kwa.use.<wand>.
+    default: op
+    children:
+      kwa.use.tygron: true
+  kwa.use.tygron:
+    description: De Tygron Deathwhistle gebruiken (geef dit aan de Stamleider van Tygron)
+    default: op
+  kwa.wand.tygron:
+    description: Toestemming om de Tygron Deathwhistle te krijgen (/kwa get tygron [speler]); andere wands krijgen automatisch kwa.wand.<wand>
+    default: op
+  kwa.getwand:
+    description: Het wand-menu openen met /kwa get (een wand pakken vraagt ook kwa.wand.<wand>)
+    default: op
+  kwa.bind:
+    description: Toestemming tot /bind (en /kwa bind)
+    default: op
+  kwa.unbind:
+    description: Toestemming tot /unbind (en /kwa unbind)
+    default: op
+  kwa.spells:
+    description: Toestemming tot /kwa spells (list, spell, spelllist)
+    default: op
+  kwa.effect:
+    description: Select-effect van je wand veranderen met /kwa effect
+    default: op
+  kwa.create:
+    description: Een wand maken van het item in je hand met /kwa create
+    default: op
+  kwa.admin:
+    description: /kwa reload en /kwa check
+    default: op
+  kwa.dev:
+    description: /kwa dev - dev mode om alleen te testen (geen cooldowns, raakt ook jezelf/mobs/bondgenoten)
+    default: op
+  kwa.spells.*:
+    description: Alle spells
+    default: op
+    children:
+      kwa.spells.Scream: true
+      kwa.spells.Mark: true
+  kwa.spells.Scream:
+    description: Mag de spell Scream binden en casten
+    default: op
+  kwa.spells.Mark:
+    description: Mag de spell Mark binden en casten
     default: op

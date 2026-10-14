@@ -1,0 +1,88 @@
+# FenixCore - wands-module (voorheen KingdomWandsAddon). Alle waarden zijn voorstellen, pas aan na testen.
+config-version: 6              # niet aanpassen: de plugin werkt oude configs hiermee bij
+# Toegang via permissies: operators mogen alles, anderen via LuckPerms (kwa.use, kwa.wand.<wand>, kwa.spells.<Spell>, ...).
+
+slots: 9                       # aantal bind-slots per wand (1-9)
+
+# Alle wands van de addon. Een nieuwe wand = een nieuw blok hieronder (dan /kwa reload):
+#   /kwa get <wand> [speler]      geeft de wand (bv. /kwa get tygron)     permissie kwa.wand.<wand>, standaard op
+#   /kwa get                      menu met alle wands
+#   /kwa create <wand> [naam]     maakt die wand van het item in je hand
+# Gebruiken: kwa.use.<wand> (of kwa.use voor alle wands). Alleen nieuwe spells hebben een nieuwe build nodig;
+# bestaande spells kun je vrij over wands verdelen.
+# kingdom: leden + bondgenoten (ALLY) van dat kingdom worden niet geraakt; "" = iedereen wordt geraakt.
+# effect (select-effect): TYGRON, BLOOD, DARK, SHADOW, FLAME, ICE, NOTHING
+wands:
+  tygron:
+    name: "<dark_red>Tygron Deathwhistle"     # MiniMessage of &-kleurcodes
+    lore:                                      # regels onder de naam; [] = geen
+      - "<gray>Gebruikt alleen door de Stamleider van Tygron"
+    material: BONE
+    custom-model-data: 0                       # eigen model via resourcepack (0 = geen)
+    kingdom: "Tygron"
+    effect: TYGRON
+    spells: [Scream, Mark]
+
+# Spells (balans geldt voor elke wand die de spell heeft).
+# select-sound: eigen switch-toon per spell, alleen hoorbaar voor de speler. Bukkit-naam (BLOCK_NOTE_BLOCK_BELL),
+# Minecraft-key (block.note_block.bell) of een geluid uit een eigen resourcepack (mijnpack:fluit.scream).
+# Nieuwe spells krijgen hier later gewoon hun eigen select-sound.
+# Spells raken iedereen in de radius, behalve: het kingdom van de wand, bondgenoten daarvan, creative/spectator.
+
+scream:
+  cooldown-seconds: 90
+  hear-radius: 100
+  effect-radius: 30
+  particle-height: 20          # hoe hoog de zwarte spiraal stijgt en ontploft (blokken); van ver zichtbaar
+  fear-duration-seconds: 10    # hoelang Slowness + Weakness duren
+  slowness-amplifier: 1
+  weakness-amplifier: 0
+  nausea-seconds: 5            # heftige nausea (draaiend scherm); 0 = geen
+  select-sound: BLOCK_NOTE_BLOCK_DIDGERIDOO   # switch-toon bij selecteren ("" = geluid van het effect)
+  select-pitch: 0.6
+  select-volume: 1.0
+
+mark:
+  cooldown-seconds: 150
+  radius: 50
+  targets: 5
+  glowing-seconds: 30          # hoelang Glowing duurt
+  blindness-seconds: 1         # hoelang Blindness duurt
+  blindness: true
+  glowing: true
+  select-sound: BLOCK_NOTE_BLOCK_CHIME        # switch-toon bij selecteren ("" = geluid van het effect)
+  select-pitch: 1.2
+  select-volume: 1.0
+
+# Dev mode: /kwa dev (permissie kwa.dev, standaard op). Geldt ALLEEN voor wie het aanzet, om alleen te testen.
+# Staat na een herstart weer uit.
+dev:
+  no-cooldown: true            # geen cooldowns
+  hit-self: true               # spells raken jezelf ook (Fear, Glowing, Blindness)
+  hit-mobs: true               # spells raken ook mobs in de buurt
+  ignore-kingdom: false        # true = ook je eigen kingdom, bondgenoten en spelers in creative raken
+  debug: true                  # in de chat wie er geraakt is
+
+# Alle teksten (MiniMessage). <spell>, <slot>, <wand>, <player> en <time> worden ingevuld.
+messages:
+  prefix: "<gold>[<gray>KWA</gray>]</gold> "
+  selected: "<gray><spell> <gold>Geselecteerd"            # zoals KingdomWands: "<gold>Slot <gray>#<slot> <gold>geselecteerd: <gray><spell><gold>."
+  no-spells: "<gold>Je hebt op deze wand geen spell gebind <gray>(/bind all)"
+  cooldown: "<gray><spell> <gold>cooldown: <gray><time>"
+  give: "<gold>Je hebt nu de krachtige <wand>"
+  give-other: "<gold>Wand gegeven aan <gray><player>"
+  create: "<gold>Je item is nu de krachtige <wand>"
+  bind-usage: "<gold>Usage: /bind <slot> <spell> | /bind all"
+  bind-all: "<gold>You've bound all spells!"
+  bind: "<gold>Successfully bound <gray><spell><gold> to slot <gray><slot><gold>."
+  bind-hint: "<gold>Use: <gray>/unbind <slot_number> <gold>in order to unbind the spell from your wand."
+  unbind-usage: "<gold>Usage: /unbind <slot> | /unbind all"
+  unbind-all: "<gold>You've unbound all spells!"
+  unbind: "<gold>Successfully unbound slot <gray><slot><gold>."
+  unbind-hint: "<gold>Use: <gray>/bind <slot_number> <spell> <gold>in order to bind the spell to your wand."
+  unknown-spell: "<gold>That spell does not exist"
+  no-wand: "<red>Je hebt momenteel geen geldige wand vast."
+  no-permission: "<red>Je hebt geen permissie voor dit commando."
+  no-wand-permission: "<red>Je hebt geen permissie voor deze wand."
+  no-spell-permission: "<red>Je mag <gray><spell></gray> niet gebruiken."
+  players-only: "<red>Dit commando kan alleen gebruikt worden door spelers!"
