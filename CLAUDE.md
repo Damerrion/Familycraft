@@ -118,7 +118,7 @@ Samengevoegd uit twee losse plugins (gebruiker, 2026-10-13: "samen voegen ... 1 
   over; Opvolger -> Reserve schuift door. Gedenk-leden: geen rang, niet kicken/verloven, tellen niet mee
   (`livingCount`), overleden partner telt niet als getrouwd (`livingPartner`, koppeling vervalt bij nieuw huwelijk).
   `revive` (terug, oude rang als vrij) en `removeDeceased`. GUI: `Lore.icon` (skelet-schedel, ✝), lid-menu-knoppen.
-- Admin-website (gebruiker koos "in de plugin"): `nl.fenix.core.web.AdminWeb`, JDK `HttpServer`, alleen GET, token
+- Admin-website (gebruiker koos "in de plugin"): `nl.fenix.core.web.AdminWeb`, JDK `HttpServer`, GET voor pagina's en POST voor acties, token
   uit config.yml `web.token` (constant-time vergelijken), pagina op de main thread (`callSyncMethod`), alles
   ge-escaped, CSP/no-referrer. `/fenixcore web [newtoken]` (`fenixcore.web`).
   Editor (gebruiker: "maak de web ook een admin editor"): `WebPages` (HTML: overzicht + `/family?tag=`), `WebActions`
